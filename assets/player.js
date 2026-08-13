@@ -280,7 +280,7 @@ async function loadRelease() {
     const missing = REQUIRED_FIELDS.filter((field) => !config[field]);
     if (missing.length) throw new Error(`Missing config fields: ${missing.join(", ")}`);
 
-    document.title = `${config.title} — ${config.artist}`;
+    document.title = config.title;
     document.documentElement.style.setProperty("--accent", config.accentColor || "#e5644e");
     title.textContent = config.title;
     artist.textContent = config.artist;
@@ -310,12 +310,23 @@ async function loadRelease() {
   }
 }
 
+async function lockPortraitOrientation() {
+  if (!screen.orientation?.lock) return;
+  try {
+    await screen.orientation.lock("portrait");
+  } catch {
+    // Orientation locking is an enhancement and is unsupported on iOS Safari.
+  }
+}
+
 function requestFullscreenOnce() {
   if (!firstPlayAttempt) return;
   firstPlayAttempt = false;
   // Fullscreen is an enhancement and must be requested from the same trusted gesture.
   if (document.fullscreenEnabled && player.requestFullscreen) {
-    player.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    player.requestFullscreen({ navigationUI: "hide" })
+      .then(lockPortraitOrientation)
+      .catch(() => {});
   }
 }
 

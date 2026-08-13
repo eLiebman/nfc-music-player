@@ -65,16 +65,19 @@ button, a { font: inherit; }
 }
 
 .player-shell {
+  position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr;
   width: min(68rem, 100%);
   min-height: calc(100svh - 2.5rem);
   margin: auto;
 }
 
 .release-meta {
-  position: relative;
+  position: absolute;
   z-index: 3;
+  top: 0;
+  left: 0;
   width: 100%;
   padding-inline: 0.1rem;
   text-align: left;
@@ -110,8 +113,7 @@ button, a { font: inherit; }
   place-items: center;
   width: 100%;
   min-width: 0;
-  min-height: var(--disc-size-active);
-  padding-block: 1.5rem;
+  min-height: 100%;
 }
 
 .disc-button {
@@ -159,34 +161,33 @@ button, a { font: inherit; }
 }
 
 .disc-button::before {
-  background: radial-gradient(circle at center,
-    transparent 91.5%,
-    rgba(255, 255, 255, 0.08) 93%,
-    rgba(255, 255, 255, 0.34) 95%,
-    rgba(255, 255, 255, 0.09) 96.2%,
-    rgba(3, 4, 7, 0.52) 98.2%,
-    rgba(3, 4, 7, 0.82) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0.35rem 0.45rem 0.7rem rgba(255, 255, 255, 0.08),
-    inset -0.45rem -0.55rem 0.85rem rgba(0, 0, 0, 0.42);
+  background:
+    repeating-radial-gradient(circle at center,
+      rgba(255, 255, 255, 0.055) 0 1px,
+      rgba(0, 0, 0, 0.18) 1px 2.5px),
+    #090a0d;
+  -webkit-mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
+  mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .disc-button::after {
-  inset: 1.2%;
+  inset: 2.75%;
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.025) 24%,
+    rgba(255, 255, 255, 0.11) 0%,
+    rgba(255, 255, 255, 0.02) 24%,
     transparent 45%,
-    rgba(0, 0, 0, 0.08) 76%,
-    rgba(0, 0, 0, 0.18) 100%);
+    rgba(0, 0, 0, 0.06) 76%,
+    rgba(0, 0, 0, 0.15) 100%);
   mix-blend-mode: soft-light;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .disc-artwork {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 94.5%;
+  height: 94.5%;
+  margin: 2.75%;
   border-radius: 50%;
   object-fit: cover;
   pointer-events: none;
@@ -197,8 +198,10 @@ button, a { font: inherit; }
 }
 
 .release-footer {
-  position: relative;
+  position: absolute;
   z-index: 3;
+  bottom: 0;
+  left: 0;
   min-height: 3rem;
   width: 100%;
   padding-inline: 0.1rem;
@@ -256,7 +259,6 @@ button, a { font: inherit; }
     --disc-size-resting: min(54vh, 28rem);
     --disc-size-active: min(86vh, 34rem);
   }
-  .player-shell { grid-template-columns: 13rem 1fr 13rem; grid-template-rows: 1fr; align-items: center; }
-  .release-meta { text-align: left; }
-  .release-footer { text-align: right; }
+  .release-meta { width: 13rem; text-align: left; }
+  .release-footer { right: 0; left: auto; width: 13rem; text-align: right; }
 }
