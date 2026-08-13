@@ -44,7 +44,7 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=9">
+    <link rel="stylesheet" href="../assets/app.css?v=11">
   </head>
   <body data-config="../releases/${slug}/config.json">
     <main class="player" data-player data-state="loading">
@@ -67,7 +67,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=24"></script>
+    <script type="module" src="../assets/player.js?v=27"></script>
   </body>
 </html>
 `;

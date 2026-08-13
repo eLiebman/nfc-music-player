@@ -11,6 +11,8 @@ const VINYL_PITCH_MOTOR = Object.freeze({
 });
 
 const player = document.querySelector("[data-player]");
+const releaseMeta = document.querySelector(".release-meta");
+const releaseFooter = document.querySelector(".release-footer");
 const button = document.querySelector("[data-disc-button]");
 const artwork = document.querySelector("[data-artwork]");
 const title = document.querySelector("[data-title]");
@@ -177,28 +179,9 @@ function getIntegratedRampPlaybackSeconds(running) {
   return (playbackRateTotal / steps) * (duration / 1000);
 }
 
-function getIntegratedMotorRatio(running) {
-  const steps = 240;
-  let motorRatioTotal = 0;
-
-  for (let step = 0; step < steps; step += 1) {
-    const progress = (step + 0.5) / steps;
-    const naturalProgress = easeInOutSine(progress);
-    const perceptualProgress = running
-      ? naturalProgress
-      : naturalProgress ** 1.25;
-    motorRatioTotal += running ? perceptualProgress : 1 - perceptualProgress;
-  }
-
-  return motorRatioTotal / steps;
-}
-
 const MOTOR_REWIND_SECONDS = getIntegratedRampPlaybackSeconds(false)
   + getIntegratedRampPlaybackSeconds(true)
   - MOTOR_REWIND_TRIM_SECONDS;
-const MOTOR_DECEL_TURNS = (1 / SECONDS_PER_TURN)
-  * (MOTOR_DECEL_DURATION_MS / 1000)
-  * getIntegratedMotorRatio(false);
 
 function seekAudio(timestamp) {
   return new Promise((resolve) => {
@@ -253,6 +236,10 @@ function beginMotorStop() {
 function beginEndLanding() {
   pendingMotorPause = false;
   motorTransition = null;
+  releaseMeta.style.transition = "none";
+  releaseFooter.style.transition = "none";
+  releaseMeta.style.opacity = "0";
+  releaseFooter.style.opacity = "0";
 
   if (reducedMotion.matches || visualSpeed <= 0) {
     motorRunning = false;
@@ -260,30 +247,21 @@ function beginEndLanding() {
     visualTurns = Math.round(visualTurns);
     artwork.style.transform = `rotate(${visualTurns * 360}deg)`;
     setState("ended");
+    releaseMeta.style.removeProperty("transition");
+    releaseFooter.style.removeProperty("transition");
+    releaseMeta.style.removeProperty("opacity");
+    releaseFooter.style.removeProperty("opacity");
     return;
   }
 
-  let targetTurns = Math.ceil(visualTurns);
-  if (targetTurns - visualTurns < MOTOR_DECEL_TURNS) targetTurns += 1;
-  const coastTurns = targetTurns - visualTurns - MOTOR_DECEL_TURNS;
-
-  motorRunning = true;
-  endLanding = {
-    targetTurns,
-    decelerateAt: performance.now() + (coastTurns / visualSpeed) * 1000,
-    decelerating: false,
-  };
+  endLanding = true;
+  startMotorTransition(false);
 }
 
 function renderDisc(frameTime) {
   if (previousFrameTime === undefined) previousFrameTime = frameTime;
   const elapsed = Math.min((frameTime - previousFrameTime) / 1000, 0.05);
   previousFrameTime = frameTime;
-
-  if (endLanding && !endLanding.decelerating && frameTime >= endLanding.decelerateAt) {
-    endLanding.decelerating = true;
-    startMotorTransition(false);
-  }
 
   let completedEndLanding = false;
   if (motorTransition) {
@@ -302,8 +280,10 @@ function renderDisc(frameTime) {
     if (progress === 1) {
       visualSpeed = motorTransition.targetSpeed;
       motorTransition = null;
-      if (endLanding?.decelerating) {
-        visualTurns = endLanding.targetTurns;
+      if (endLanding) {
+        // Once the natural drift stops, the resting transition takes the
+        // shortest route back to the artwork's upright orientation.
+        visualTurns = Math.round(visualTurns);
         endLanding = null;
         completedEndLanding = true;
       }
@@ -315,7 +295,13 @@ function renderDisc(frameTime) {
     artwork.style.transform = `rotate(${visualTurns * 360}deg)`;
   }
 
-  if (completedEndLanding) setState("ended");
+  if (completedEndLanding) {
+    setState("ended");
+    releaseMeta.style.removeProperty("transition");
+    releaseFooter.style.removeProperty("transition");
+    releaseMeta.style.removeProperty("opacity");
+    releaseFooter.style.removeProperty("opacity");
+  }
 
   setVinylPlaybackRate();
 

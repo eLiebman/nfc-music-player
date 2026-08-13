@@ -200,6 +200,10 @@ button, a { font: inherit; }
   will-change: transform;
 }
 
+[data-state="ended"] .disc-artwork {
+  transition: transform 1200ms var(--ease);
+}
+
 .release-footer {
   position: absolute;
   z-index: 3;
@@ -247,6 +251,12 @@ button, a { font: inherit; }
 [data-state="stopping"] .release-footer { transform: translateY(0.45rem); }
 [data-state="ending"] .release-meta { transform: translateY(-0.45rem); }
 [data-state="ending"] .release-footer { transform: translateY(0.45rem); }
+
+[data-state="ending"] .release-meta,
+[data-state="ending"] .release-footer {
+  transition-duration: 0ms;
+  transition-delay: 0ms;
+}
 
 [data-state="paused"] .release-meta,
 [data-state="paused"] .release-footer,
