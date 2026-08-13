@@ -147,6 +147,10 @@ button, a { font: inherit; }
   width: var(--disc-size-active);
 }
 
+[data-state="ended"] .disc-button {
+  transition: width 1200ms var(--ease), transform 220ms var(--ease), box-shadow 220ms var(--ease);
+}
+
 .disc-button:focus-visible { outline: 0.22rem solid var(--ink); outline-offset: 0.5rem; }
 .disc-button:disabled { cursor: wait; }
 
