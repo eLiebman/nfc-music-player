@@ -35,6 +35,7 @@ let previousFrameTime;
 let motorRunning = false;
 let pendingMotorPause = false;
 let motorTransition = null;
+let endLanding = null;
 
 function resolveAsset(path) {
   return new URL(path, configBaseUrl).href;
@@ -175,9 +176,28 @@ function getIntegratedRampPlaybackSeconds(running) {
   return (playbackRateTotal / steps) * (duration / 1000);
 }
 
+function getIntegratedMotorRatio(running) {
+  const steps = 240;
+  let motorRatioTotal = 0;
+
+  for (let step = 0; step < steps; step += 1) {
+    const progress = (step + 0.5) / steps;
+    const naturalProgress = easeInOutSine(progress);
+    const perceptualProgress = running
+      ? naturalProgress
+      : naturalProgress ** 1.25;
+    motorRatioTotal += running ? perceptualProgress : 1 - perceptualProgress;
+  }
+
+  return motorRatioTotal / steps;
+}
+
 const MOTOR_REWIND_SECONDS = getIntegratedRampPlaybackSeconds(false)
   + getIntegratedRampPlaybackSeconds(true)
   - MOTOR_REWIND_TRIM_SECONDS;
+const MOTOR_DECEL_TURNS = (1 / SECONDS_PER_TURN)
+  * (MOTOR_DECEL_DURATION_MS / 1000)
+  * getIntegratedMotorRatio(false);
 
 function seekAudio(timestamp) {
   return new Promise((resolve) => {
@@ -229,10 +249,39 @@ function beginMotorStop() {
   setState("stopping");
 }
 
+function beginEndLanding() {
+  pendingMotorPause = false;
+  motorTransition = null;
+
+  if (reducedMotion.matches || visualSpeed <= 0) {
+    motorRunning = false;
+    visualSpeed = 0;
+    visualTurns = Math.round(visualTurns);
+    artwork.style.transform = `rotate(${visualTurns * 360}deg)`;
+    return;
+  }
+
+  let targetTurns = Math.ceil(visualTurns);
+  if (targetTurns - visualTurns < MOTOR_DECEL_TURNS) targetTurns += 1;
+  const coastTurns = targetTurns - visualTurns - MOTOR_DECEL_TURNS;
+
+  motorRunning = true;
+  endLanding = {
+    targetTurns,
+    decelerateAt: performance.now() + (coastTurns / visualSpeed) * 1000,
+    decelerating: false,
+  };
+}
+
 function renderDisc(frameTime) {
   if (previousFrameTime === undefined) previousFrameTime = frameTime;
   const elapsed = Math.min((frameTime - previousFrameTime) / 1000, 0.05);
   previousFrameTime = frameTime;
+
+  if (endLanding && !endLanding.decelerating && frameTime >= endLanding.decelerateAt) {
+    endLanding.decelerating = true;
+    startMotorTransition(false);
+  }
 
   if (motorTransition) {
     const progress = motorTransition.duration === 0
@@ -250,6 +299,10 @@ function renderDisc(frameTime) {
     if (progress === 1) {
       visualSpeed = motorTransition.targetSpeed;
       motorTransition = null;
+      if (endLanding?.decelerating) {
+        visualTurns = endLanding.targetTurns;
+        endLanding = null;
+      }
     }
   }
 
@@ -336,6 +389,7 @@ async function play({ requestFullscreen = true } = {}) {
   const isFirstStart = !hasStartedPlayback;
   let desiredResumeTimestamp = null;
   let needsMotorStart = false;
+  endLanding = null;
   pendingMotorPause = false;
   if (VINYL_PITCH_MOTOR.enabled) {
     if (isFirstStart) {
@@ -395,8 +449,7 @@ audio.addEventListener("pause", () => {
   if (!audio.ended) setState("paused");
 });
 audio.addEventListener("ended", () => {
-  pendingMotorPause = false;
-  if (VINYL_PITCH_MOTOR.enabled && visualSpeed > 0) startMotorTransition(false);
+  if (VINYL_PITCH_MOTOR.enabled) beginEndLanding();
   else motorRunning = false;
   setState("ended");
 });
