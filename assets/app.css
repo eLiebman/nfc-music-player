@@ -40,7 +40,7 @@ button, a { font: inherit; }
   display: grid;
   min-height: 100svh;
   overflow: hidden;
-  padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+  padding-inline: max(1.25rem, env(safe-area-inset-left)) max(1.25rem, env(safe-area-inset-right));
 }
 
 .backdrop {
@@ -69,14 +69,14 @@ button, a { font: inherit; }
   display: grid;
   grid-template-rows: 1fr;
   width: min(68rem, 100%);
-  min-height: calc(100svh - 2.5rem);
+  min-height: 100svh;
   margin: auto;
 }
 
 .release-meta {
   position: absolute;
   z-index: 3;
-  top: 0;
+  top: max(1.25rem, env(safe-area-inset-top));
   left: 0;
   width: 100%;
   padding-inline: 0.1rem;
@@ -199,7 +199,7 @@ button, a { font: inherit; }
 .release-footer {
   position: absolute;
   z-index: 3;
-  bottom: 0;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
   left: 0;
   min-height: 3rem;
   width: 100%;
