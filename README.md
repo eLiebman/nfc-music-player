@@ -10,7 +10,7 @@ From this folder, run:
 python3 -m http.server 8080
 ```
 
-Then open <http://localhost:8080/?release=just-friends>.
+Then open <http://localhost:8080/just-friends/>.
 
 The first click on the disc requests fullscreen where supported and starts playback. Later clicks pause, resume, or replay the release.
 
@@ -19,9 +19,10 @@ The first click on the disc requests fullscreen where supported and starts playb
 1. Create `releases/your-release-slug`.
 2. Add your artwork, audio, and a copy of `config.json` to that folder.
 3. Update `config.json` with the filenames and release metadata.
-4. Open `http://localhost:8080/?release=your-release-slug`.
+4. Run `node scripts/generate-release-pages.mjs`.
+5. Open `http://localhost:8080/your-release-slug/`.
 
-There is only one player HTML file. The `release` URL parameter selects a folder and loads its `config.json`; relative asset paths are resolved from that config file's location.
+Generated release pages contain only static link-preview metadata and the shared player shell. Player behavior remains centralized in `assets/player.js`; relative asset paths are resolved from each release's config file location.
 
 Do not double-click `index.html`; browsers restrict `fetch()` when a page is opened as a `file://` URL. Use the local server command above.
 

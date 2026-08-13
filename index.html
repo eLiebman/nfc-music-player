@@ -4,22 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#12131a">
-    <title>Just Friends</title>
-    <meta name="description" content="Just Friends by Elliot.wavs feat. Dizparity">
-    <meta property="og:type" content="music.song">
-    <meta property="og:site_name" content="Elliot.wavs">
-    <meta property="og:title" content="Just Friends">
-    <meta property="og:description" content="Elliot.wavs feat. Dizparity">
-    <meta property="og:url" content="https://play.elliotwavs.com/?release=just-friends">
-    <meta property="og:image" content="https://play.elliotwavs.com/assets/previews/just-friends.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="1200">
-    <meta property="og:image:alt" content="Cover artwork for Just Friends">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Just Friends">
-    <meta name="twitter:description" content="Elliot.wavs feat. Dizparity">
-    <meta name="twitter:image" content="https://play.elliotwavs.com/assets/previews/just-friends.jpg">
+    <title>Elliot.wavs</title>
+    <meta name="description" content="Physical music releases by Elliot.wavs">
     <link rel="stylesheet" href="./assets/app.css?v=7">
+    <script>
+      const release = new URLSearchParams(location.search).get("release");
+      if (release && /^[a-z0-9][a-z0-9-]*$/i.test(release)) {
+        location.replace(`./${release}/${location.search.includes("test-muted") ? "?test-muted=1" : ""}`);
+      }
+    </script>
   </head>
   <body>
     <main class="player" data-player data-state="loading">
