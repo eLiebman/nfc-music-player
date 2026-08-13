@@ -163,24 +163,23 @@ button, a { font: inherit; }
 .disc-button::before {
   background:
     repeating-radial-gradient(circle at center,
-      rgba(255, 255, 255, 0.055) 0 1px,
-      rgba(0, 0, 0, 0.18) 1px 2.5px),
-    #090a0d;
+      rgba(255, 255, 255, 0.028) 0 1px,
+      rgba(0, 0, 0, 0.34) 1px 2.5px),
+    #050609;
   -webkit-mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
   mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .disc-button::after {
-  inset: 2.75%;
+  inset: 0;
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.11) 0%,
-    rgba(255, 255, 255, 0.02) 24%,
-    transparent 45%,
-    rgba(0, 0, 0, 0.06) 76%,
-    rgba(0, 0, 0, 0.15) 100%);
-  mix-blend-mode: soft-light;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    rgba(255, 255, 255, 0.105) 0%,
+    rgba(255, 255, 255, 0.018) 27%,
+    transparent 48%,
+    rgba(0, 0, 0, 0.12) 72%,
+    rgba(0, 0, 0, 0.48) 100%);
+  -webkit-mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
+  mask: radial-gradient(circle, transparent 0 94.1%, #000 94.35% 100%);
 }
 
 .disc-artwork {
