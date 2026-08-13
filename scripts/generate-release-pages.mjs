@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const releasesRoot = path.join(root, "releases");
 const siteOrigin = "https://play.elliotwavs.com";
+const includePrivate = process.argv.includes("--include-private");
 
 const escapeHtml = (value) => String(value)
   .replaceAll("&", "&amp;")
@@ -43,7 +44,7 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=7">
+    <link rel="stylesheet" href="../assets/app.css?v=8">
   </head>
   <body data-config="../releases/${slug}/config.json">
     <main class="player" data-player data-state="loading">
@@ -66,7 +67,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=23"></script>
+    <script type="module" src="../assets/player.js?v=24"></script>
   </body>
 </html>
 `;
@@ -80,7 +81,7 @@ for (const entry of entries) {
 
   try {
     await access(path.join(releaseDir, ".no-share"));
-    continue;
+    if (!includePrivate) continue;
   } catch {}
 
   const config = JSON.parse(await readFile(path.join(releaseDir, "config.json"), "utf8"));

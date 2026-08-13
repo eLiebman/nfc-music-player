@@ -142,6 +142,7 @@ button, a { font: inherit; }
 
 [data-state="playing"] .disc-button,
 [data-state="stopping"] .disc-button,
+[data-state="ending"] .disc-button,
 [data-state="paused"] .disc-button {
   width: var(--disc-size-active);
 }
@@ -222,7 +223,9 @@ button, a { font: inherit; }
 [data-state="playing"] .release-meta,
 [data-state="playing"] .release-footer,
 [data-state="stopping"] .release-meta,
-[data-state="stopping"] .release-footer {
+[data-state="stopping"] .release-footer,
+[data-state="ending"] .release-meta,
+[data-state="ending"] .release-footer {
   opacity: 0;
   pointer-events: none;
   transition-delay: 720ms;
@@ -238,6 +241,8 @@ button, a { font: inherit; }
 [data-state="playing"] .release-footer { transform: translateY(0.45rem); }
 [data-state="stopping"] .release-meta { transform: translateY(-0.45rem); }
 [data-state="stopping"] .release-footer { transform: translateY(0.45rem); }
+[data-state="ending"] .release-meta { transform: translateY(-0.45rem); }
+[data-state="ending"] .release-footer { transform: translateY(0.45rem); }
 
 [data-state="paused"] .release-meta,
 [data-state="paused"] .release-footer,

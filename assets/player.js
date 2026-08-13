@@ -74,13 +74,14 @@ function getConfigUrl() {
 function setState(next, message = "") {
   state = next;
   player.dataset.state = next;
-  button.disabled = next === "loading";
+  button.disabled = next === "loading" || next === "ending";
 
   const action = {
     loading: "Loading",
     ready: "Play",
     playing: "Pause",
     stopping: "Resume",
+    ending: "Finishing",
     paused: "Resume",
     ended: "Replay",
     error: "Retry",
@@ -258,6 +259,7 @@ function beginEndLanding() {
     visualSpeed = 0;
     visualTurns = Math.round(visualTurns);
     artwork.style.transform = `rotate(${visualTurns * 360}deg)`;
+    setState("ended");
     return;
   }
 
@@ -283,6 +285,7 @@ function renderDisc(frameTime) {
     startMotorTransition(false);
   }
 
+  let completedEndLanding = false;
   if (motorTransition) {
     const progress = motorTransition.duration === 0
       ? 1
@@ -302,6 +305,7 @@ function renderDisc(frameTime) {
       if (endLanding?.decelerating) {
         visualTurns = endLanding.targetTurns;
         endLanding = null;
+        completedEndLanding = true;
       }
     }
   }
@@ -310,6 +314,8 @@ function renderDisc(frameTime) {
     visualTurns += visualSpeed * elapsed;
     artwork.style.transform = `rotate(${visualTurns * 360}deg)`;
   }
+
+  if (completedEndLanding) setState("ended");
 
   setVinylPlaybackRate();
 
@@ -449,9 +455,13 @@ audio.addEventListener("pause", () => {
   if (!audio.ended) setState("paused");
 });
 audio.addEventListener("ended", () => {
-  if (VINYL_PITCH_MOTOR.enabled) beginEndLanding();
-  else motorRunning = false;
-  setState("ended");
+  if (VINYL_PITCH_MOTOR.enabled) {
+    setState("ending");
+    beginEndLanding();
+  } else {
+    motorRunning = false;
+    setState("ended");
+  }
 });
 audio.addEventListener("error", () => setState("error", "Audio could not be loaded. Check the file path or S3 CORS policy."));
 
