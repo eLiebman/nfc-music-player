@@ -142,8 +142,7 @@ button, a { font: inherit; }
 
 [data-state="playing"] .disc-button,
 [data-state="stopping"] .disc-button,
-[data-state="paused"] .disc-button,
-[data-state="ended"] .disc-button {
+[data-state="paused"] .disc-button {
   width: var(--disc-size-active);
 }
 

@@ -395,8 +395,9 @@ audio.addEventListener("pause", () => {
   if (!audio.ended) setState("paused");
 });
 audio.addEventListener("ended", () => {
-  motorRunning = false;
   pendingMotorPause = false;
+  if (VINYL_PITCH_MOTOR.enabled && visualSpeed > 0) startMotorTransition(false);
+  else motorRunning = false;
   setState("ended");
 });
 audio.addEventListener("error", () => setState("error", "Audio could not be loaded. Check the file path or S3 CORS policy."));
