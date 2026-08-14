@@ -3,5 +3,6 @@
   "artist": "Elliot.wavs",
   "audio": "./audio.wav",
   "artwork": "./artwork.jpg",
+  "displayArtwork": "./artwork-display.jpg",
   "edition": "© Elliot.wavs 2022"
 }

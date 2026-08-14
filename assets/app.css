@@ -53,7 +53,11 @@ button, a { font: inherit; }
   background-size: cover;
   filter: blur(44px) saturate(0.85) brightness(0.34);
   transform: scale(1.1);
+  opacity: 0;
+  transition: opacity 1000ms var(--ease);
 }
+
+[data-artwork-ready="true"] .backdrop { opacity: 1; }
 
 .player::after {
   content: "";
@@ -198,6 +202,14 @@ button, a { font: inherit; }
   -webkit-user-select: none;
   -webkit-user-drag: none;
   will-change: transform;
+  opacity: 0;
+  scale: 0.985;
+  transition: opacity 700ms var(--ease), scale 700ms var(--ease);
+}
+
+[data-artwork-ready="true"] .disc-artwork {
+  opacity: 1;
+  scale: 1;
 }
 
 [data-state="ended"] .disc-artwork {

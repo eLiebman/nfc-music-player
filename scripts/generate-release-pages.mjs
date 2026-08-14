@@ -22,6 +22,10 @@ function pageHtml(slug, config) {
   const artworkUrl = isRemoteUrl(config.artwork)
     ? config.artwork
     : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).href;
+  const displayArtwork = config.displayArtwork || config.artwork;
+  const displayArtworkUrl = isRemoteUrl(displayArtwork)
+    ? displayArtwork
+    : new URL(displayArtwork, `${siteOrigin}/releases/${slug}/`).href;
   const pageUrl = `${siteOrigin}/${slug}/`;
 
   return `<!doctype html>
@@ -44,7 +48,8 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=11">
+    <link rel="preload" as="image" href="${escapeHtml(displayArtworkUrl)}" crossorigin="anonymous">
+    <link rel="stylesheet" href="../assets/app.css?v=12">
   </head>
   <body data-config="../releases/${slug}/config.json">
     <main class="player" data-player data-state="loading">
@@ -67,7 +72,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=27"></script>
+    <script type="module" src="../assets/player.js?v=28"></script>
   </body>
 </html>
 `;

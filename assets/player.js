@@ -332,22 +332,26 @@ async function loadRelease() {
     edition.textContent = config.edition || "";
     edition.hidden = !config.edition;
 
-    const artworkUrl = resolveAsset(config.artwork);
+    const artworkUrl = resolveAsset(config.displayArtwork || config.artwork);
     // Anonymous CORS is required for pixel sampling when artwork is hosted on S3.
     artwork.crossOrigin = "anonymous";
     artwork.src = artworkUrl;
     artwork.alt = `${config.title} artwork`;
     player.style.setProperty("--artwork-image", `url("${artworkUrl.replaceAll('"', '\\"')}")`);
-    await setAudioSource(resolveAsset(config.audio));
-    configureVinylPitchMotor();
-    audio.load();
+    const artworkReady = artwork.decode().then(() => {
+      try {
+        document.documentElement.style.setProperty("--accent", extractAccent(artwork));
+      } catch (accentError) {
+        console.warn("Artwork accent extraction unavailable; using fallback.", accentError);
+      }
+      player.dataset.artworkReady = "true";
+    });
+    const audioReady = setAudioSource(resolveAsset(config.audio)).then(() => {
+      configureVinylPitchMotor();
+      audio.load();
+    });
 
-    await artwork.decode();
-    try {
-      document.documentElement.style.setProperty("--accent", extractAccent(artwork));
-    } catch (accentError) {
-      console.warn("Artwork accent extraction unavailable; using fallback.", accentError);
-    }
+    await Promise.all([artworkReady, audioReady]);
     setState("ready");
   } catch (error) {
     console.error(error);
