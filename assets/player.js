@@ -334,10 +334,8 @@ async function loadRelease() {
     edition.hidden = !config.edition;
 
     const artworkUrl = resolveAsset(config.displayArtwork || config.artwork);
-    // Anonymous CORS is required for pixel sampling when artwork is hosted on S3.
-    artwork.crossOrigin = "anonymous";
-    artwork.src = artworkUrl;
     artwork.alt = `${config.title} artwork`;
+    artwork.src = artworkUrl;
     player.style.setProperty("--artwork-image", `url("${artworkUrl.replaceAll('"', '\\"')}")`);
     const artworkReady = artwork.decode().then(() => {
       try {

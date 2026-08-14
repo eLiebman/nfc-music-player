@@ -24,8 +24,7 @@ Derive a lowercase kebab-case slug from the title and confirm it only when ambig
 
 1. Create `releases/<slug>/`.
 2. Copy the supplied artwork and audio into that folder without modifying the originals. Prefer simple filenames such as `artwork.jpg` and `audio.mp3`, preserving the actual extensions.
-3. Generate a display-optimized artwork derivative at no more than 1600×1600. Name it `artwork-display.jpg` for JPEG input. On macOS, use `sips -Z 1600 --setProperty formatOptions 82 <source> --out <destination>`. If `sips` is unavailable, use an available image tool with equivalent dimensions and quality. Never upscale smaller artwork. Preserve the original artwork for social previews.
-4. Create `releases/<slug>/config.json`:
+3. Create `releases/<slug>/config.json`:
 
 ```json
 {
@@ -33,14 +32,13 @@ Derive a lowercase kebab-case slug from the title and confirm it only when ambig
   "artist": "Artist credit",
   "audio": "./audio.ext",
   "artwork": "./artwork.ext",
-  "displayArtwork": "./artwork-display.jpg",
   "edition": "Optional footer text"
 }
 ```
 
 Omit `edition` when none is supplied. Do not add an accent color; the player derives it from the artwork.
 
-5. Run:
+4. Run:
 
 ```sh
 node scripts/generate-release-pages.mjs
@@ -52,7 +50,6 @@ This generates `/<slug>/index.html` with static title, Open Graph, Twitter, cano
 
 - Confirm `config.json` parses and its four required fields are present.
 - Confirm the referenced audio and artwork exist.
-- Confirm the display artwork exists, is no larger than 1600px on either side, and is referenced by `displayArtwork`.
 - Confirm `/<slug>/index.html` contains the correct title, artist, canonical URL, encoded artwork URL, and `data-config` path.
 - Serve the repository locally and test `http://127.0.0.1:8080/<slug>/?test-muted=1` at a mobile viewport.
 - Keep all automated playback muted.
