@@ -1,8 +1,8 @@
 {
   "title": "low energy",
   "artist": "Elliot.wavs",
-  "audio": "./audio.wav",
-  "artwork": "./artwork.jpg",
+  "audio": "https://media.elliotwavs.com/releases/low-energy/audio.wav",
+  "artwork": "https://media.elliotwavs.com/releases/low-energy/artwork.jpg",
   "displayArtwork": "./artwork-display.jpg",
   "edition": "© Elliot.wavs 2022"
 }

@@ -45,7 +45,8 @@ function resolveAsset(path) {
 
 async function setAudioSource(sourceUrl) {
   const isLocalPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
-  if (!isLocalPreview) {
+  const sourceIsLocal = new URL(sourceUrl).origin === location.origin;
+  if (!isLocalPreview || !sourceIsLocal) {
     audio.src = sourceUrl;
     return;
   }
