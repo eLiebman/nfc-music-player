@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,29 +69,51 @@ async function asset(filePath, kind) {
 const [audio, artwork] = await Promise.all([asset(audioPath, "audio"), asset(artworkPath, "artwork")]);
 
 if (!dryRun) {
+  console.error("Checking AWS credentials...");
   const identityArgs = ["sts", "get-caller-identity", "--profile", target.awsProfile, "--output", "json"];
   let identityResult = runAws(identityArgs, { allowFailure: true });
   if (identityResult.status !== 0) {
+    console.error("AWS login required. Complete login in the browser; upload will resume here.");
     runAws(["login", "--profile", target.awsProfile], { interactive: true });
+    console.error("AWS login completed. Verifying credentials...");
     identityResult = runAws(identityArgs);
   }
   const identity = JSON.parse(identityResult.stdout);
   if (identity.Arn?.endsWith(":root")) throw new Error("Refusing to upload with AWS root credentials");
 
+  console.error(`Checking S3 bucket ${target.bucket} in ${target.region}...`);
+  const locationResult = runAws([
+    "s3api", "get-bucket-location", "--bucket", target.bucket,
+    "--profile", target.awsProfile, "--region", target.region, "--output", "json",
+  ]);
+  const bucketLocation = JSON.parse(locationResult.stdout).LocationConstraint || "us-east-1";
+  if (bucketLocation !== target.region) {
+    throw new Error(`Bucket ${target.bucket} is in ${bucketLocation}, not configured region ${target.region}`);
+  }
+  console.error("S3 bucket verified.");
+
   for (const item of [audio, artwork]) {
+    const kind = item === audio ? "audio" : "artwork";
+    console.error(`Uploading ${kind}: ${path.basename(item.filePath)}`);
     runAws([
       "s3", "cp", item.filePath, `s3://${target.bucket}/${item.key}`,
       "--profile", target.awsProfile,
       "--region", target.region,
       "--content-type", item.contentType,
       "--cache-control", "public,max-age=31536000,immutable",
-      "--only-show-errors",
-    ]);
+    ], { interactive: true });
+    console.error(`Verifying ${kind} upload...`);
     runAws([
       "s3api", "head-object", "--bucket", target.bucket, "--key", item.key,
       "--profile", target.awsProfile, "--region", target.region,
     ]);
+    console.error(`${kind[0].toUpperCase()}${kind.slice(1)} verified.`);
   }
 }
 
-process.stdout.write(`${JSON.stringify({ dryRun, audio, artwork }, null, 2)}\n`);
+const result = `${JSON.stringify({ dryRun, audio, artwork }, null, 2)}\n`;
+if (args["result-file"] && args["result-file"] !== true) {
+  await writeFile(path.resolve(String(args["result-file"])), result);
+} else {
+  process.stdout.write(result);
+}

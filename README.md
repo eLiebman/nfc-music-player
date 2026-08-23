@@ -14,13 +14,19 @@ Then open <http://localhost:8080/just-friends/>.
 
 The first click on the disc requests fullscreen where supported and starts playback. Later clicks pause, resume, or replay the release.
 
-## Add your own release
+## Add a release
 
-1. Create `releases/your-release-slug`.
-2. Add your artwork, audio, and a copy of `config.json` to that folder.
-3. Update `config.json` with the filenames and release metadata.
-4. Run `node scripts/generate-release-pages.mjs`.
-5. Open `http://localhost:8080/your-release-slug/`.
+Run the deterministic release script and follow its prompts:
+
+```sh
+node scripts/new-release.mjs
+```
+
+The script previews the immutable S3 keys, asks before uploading, writes the
+release config, generates the page, validates the uploaded assets and metadata,
+then prints the local visual-QA link. It does not use AI or deploy the site.
+If recovering a failed release that already has scaffolding, pass `--force` to
+reuse its slug and bypass duplicate warnings.
 
 Generated release pages contain only static link-preview metadata and the shared player shell. Player behavior remains centralized in `assets/player.js`; relative asset paths are resolved from each release's config file location.
 
