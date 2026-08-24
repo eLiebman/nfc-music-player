@@ -153,6 +153,7 @@ Options:
   --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
   --artwork <path>
   --edition <text>
+  --release-date <YYYY-MM-DD> Optional date used to sort the discography
   --slug <lowercase-kebab-case>
   --yes                     Skip the upload confirmation
   --force                   Reuse an existing slug and allow duplicates
@@ -247,6 +248,12 @@ try {
     : args.edition !== undefined
       ? String(args.edition).trim()
       : (await rl.question("Edition/footer text (optional): ")).trim();
+  const releaseDate = args["release-date"] && args["release-date"] !== true
+    ? String(args["release-date"]).trim()
+    : "";
+  if (releaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) {
+    throw new Error("Release date must use YYYY-MM-DD");
+  }
 
   if (!title || !artist || !trackInputs.length || !artworkInput) {
     throw new Error("Title, artist, at least one audio track, and artwork are required");
@@ -335,6 +342,7 @@ try {
     artist,
     artwork: uploaded.artwork.url,
     ...(edition ? { edition } : {}),
+    ...(releaseDate ? { releaseDate } : {}),
     ...(trackInputs.length === 1
       ? { audio: uploadedAudios[0].url }
       : {

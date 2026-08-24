@@ -73,7 +73,7 @@ let pendingMotorPause = false;
 let motorTransition = null;
 let endLanding = null;
 let switchingTrack = false;
-let swipeStartY = null;
+let drawerVerticalGesture = null;
 let suppressDrawerToggleClick = false;
 let activeDrawerTab = "lyrics";
 let contentSwipeStart = null;
@@ -823,60 +823,77 @@ drawerContent.addEventListener("pointermove", (event) => {
 drawerContent.addEventListener("pointerup", (event) => finishContentSwipe(event.clientX, event.clientY));
 drawerContent.addEventListener("pointercancel", (event) => finishContentSwipe(event.clientX, event.clientY));
 
-trackDock.addEventListener("pointerdown", (event) => {
-  if (event.target.closest(".track-controls")) {
-    swipeStartY = null;
-    return;
+function beginDrawerVerticalGesture(x, y, direction) {
+  drawerVerticalGesture = { x, y, direction };
+}
+
+function finishDrawerVerticalGesture(x, y) {
+  const gesture = drawerVerticalGesture;
+  drawerVerticalGesture = null;
+  if (!gesture) return;
+  const deltaX = x - gesture.x;
+  const deltaY = y - gesture.y;
+  if (Math.abs(deltaY) <= 42 || Math.abs(deltaY) <= Math.abs(deltaX) * 1.15) return;
+  if (gesture.direction === "open" && deltaY < 0) {
+    suppressDrawerToggleClick = true;
+    setDrawerOpen(true);
+  } else if (gesture.direction === "close" && deltaY > 0) {
+    setDrawerOpen(false);
   }
-  swipeStartY = event.clientY;
+}
+
+player.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen === "true") return;
+  if (player.dataset.discographyOpen === "true" || event.target.closest(".track-controls, .discography-toggle")) return;
+  if (event.clientY >= innerHeight * 0.55) beginDrawerVerticalGesture(event.clientX, event.clientY, "open");
 });
 player.addEventListener("pointerup", (event) => {
-  if (swipeStartY !== null && swipeStartY - event.clientY > 42) {
-    suppressDrawerToggleClick = true;
-    setDrawerOpen(true);
-  }
-  swipeStartY = null;
+  if (event.pointerType !== "touch") finishDrawerVerticalGesture(event.clientX, event.clientY);
 });
-trackDock.addEventListener("touchstart", (event) => {
-  if (event.target.closest(".track-controls")) {
-    swipeStartY = null;
-    return;
-  }
-  swipeStartY = event.touches[0]?.clientY ?? null;
+
+player.addEventListener("touchstart", (event) => {
+  if (player.dataset.drawerOpen === "true" || player.dataset.discographyOpen === "true") return;
+  if (event.target.closest(".track-controls, .discography-toggle")) return;
+  const touch = event.touches[0];
+  if (touch && touch.clientY >= innerHeight * 0.55) beginDrawerVerticalGesture(touch.clientX, touch.clientY, "open");
 }, { passive: true });
-trackDock.addEventListener("touchend", (event) => {
-  const endY = event.changedTouches[0]?.clientY;
-  if (swipeStartY !== null && endY !== undefined && swipeStartY - endY > 42) {
-    suppressDrawerToggleClick = true;
-    setDrawerOpen(true);
-  }
-  swipeStartY = null;
+player.addEventListener("touchend", (event) => {
+  if (player.dataset.drawerOpen === "true" || drawerVerticalGesture?.direction !== "open") return;
+  const touch = event.changedTouches[0];
+  if (touch) finishDrawerVerticalGesture(touch.clientX, touch.clientY);
 }, { passive: true });
+
 lyricsDrawer.addEventListener("pointerdown", (event) => {
-  if (event.target.closest("button")) {
-    swipeStartY = null;
-    return;
-  }
-  if (lyricsDrawer.scrollTop <= 0) {
-    swipeStartY = event.clientY;
-  }
+  if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen !== "true") return;
+  if (drawerContent.scrollTop <= 0) beginDrawerVerticalGesture(event.clientX, event.clientY, "close");
 });
 lyricsDrawer.addEventListener("pointerup", (event) => {
-  if (swipeStartY !== null && event.clientY - swipeStartY > 42) setDrawerOpen(false);
-  swipeStartY = null;
+  if (event.pointerType !== "touch" && drawerVerticalGesture?.direction === "close") {
+    finishDrawerVerticalGesture(event.clientX, event.clientY);
+  }
 });
 lyricsDrawer.addEventListener("touchstart", (event) => {
-  if (event.target.closest("button")) {
-    swipeStartY = null;
-    return;
+  if (player.dataset.drawerOpen !== "true" || drawerContent.scrollTop > 0) return;
+  const touch = event.touches[0];
+  if (touch) beginDrawerVerticalGesture(touch.clientX, touch.clientY, "close");
+}, { passive: true });
+lyricsDrawer.addEventListener("touchmove", (event) => {
+  const gesture = drawerVerticalGesture;
+  const touch = event.touches[0];
+  if (!gesture || gesture.direction !== "close" || !touch) return;
+  const deltaX = touch.clientX - gesture.x;
+  const deltaY = touch.clientY - gesture.y;
+  if (deltaY > 42 && deltaY > Math.abs(deltaX) * 1.15) {
+    drawerVerticalGesture = null;
+    setDrawerOpen(false);
   }
-  if (lyricsDrawer.scrollTop <= 0) swipeStartY = event.touches[0]?.clientY ?? null;
 }, { passive: true });
 lyricsDrawer.addEventListener("touchend", (event) => {
-  const endY = event.changedTouches[0]?.clientY;
-  if (swipeStartY !== null && endY !== undefined && endY - swipeStartY > 42) setDrawerOpen(false);
-  swipeStartY = null;
+  if (drawerVerticalGesture?.direction !== "close") return;
+  const touch = event.changedTouches[0];
+  if (touch) finishDrawerVerticalGesture(touch.clientX, touch.clientY);
 }, { passive: true });
+lyricsDrawer.addEventListener("touchcancel", () => { drawerVerticalGesture = null; }, { passive: true });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && player.dataset.discographyOpen === "true") {
     setDiscographyOpen(false);

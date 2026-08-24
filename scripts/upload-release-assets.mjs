@@ -28,12 +28,12 @@ const args = parseArgs(process.argv.slice(2));
 
 const slug = String(args.slug || "");
 const audioPaths = (args.audio || []).map((value) => path.resolve(String(value)));
-const artworkPath = path.resolve(String(args.artwork || ""));
+const artworkPath = args.artwork ? path.resolve(String(args.artwork)) : null;
 const dryRun = args["dry-run"] === true;
 
 if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error("--slug must be lowercase kebab-case");
-if (!audioPaths.length || !args.artwork) throw new Error("Usage: upload-release-assets.mjs --slug <slug> --audio <path> [--audio <path> ...] --artwork <path> [--dry-run]");
-await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), access(artworkPath)]);
+if (!audioPaths.length && !artworkPath) throw new Error("Provide at least one --audio or --artwork file");
+await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), ...(artworkPath ? [access(artworkPath)] : [])]);
 
 function runAws(commandArgs, { allowFailure = false, interactive = false } = {}) {
   const candidates = ["aws", path.join(process.env.HOME || "", ".local/bin/aws")];
@@ -82,7 +82,7 @@ async function asset(filePath, kind) {
 
 const [audios, artwork] = await Promise.all([
   Promise.all(audioPaths.map((audioPath) => asset(audioPath, "audio"))),
-  asset(artworkPath, "artwork"),
+  artworkPath ? asset(artworkPath, "artwork") : null,
 ]);
 
 if (!dryRun) {
@@ -109,7 +109,7 @@ if (!dryRun) {
   }
   console.error("S3 bucket verified.");
 
-  for (const item of [...audios, artwork]) {
+  for (const item of [...audios, ...(artwork ? [artwork] : [])]) {
     const kind = item === artwork ? "artwork" : "audio";
     console.error(`Uploading ${kind}: ${path.basename(item.filePath)}`);
     runAws([
@@ -128,9 +128,11 @@ if (!dryRun) {
   }
 }
 
-const resultPayload = audios.length === 1
-  ? { dryRun, audio: audios[0], artwork }
-  : { dryRun, audios, artwork };
+const resultPayload = {
+  dryRun,
+  ...(audios.length === 1 ? { audio: audios[0] } : audios.length ? { audios } : {}),
+  ...(artwork ? { artwork } : {}),
+};
 const result = `${JSON.stringify(resultPayload, null, 2)}\n`;
 if (args["result-file"] && args["result-file"] !== true) {
   await writeFile(path.resolve(String(args["result-file"])), result);

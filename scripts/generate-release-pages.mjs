@@ -123,7 +123,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=54"></script>
+    <script type="module" src="../assets/player.js?v=55"></script>
   </body>
 </html>
 `;
@@ -150,11 +150,20 @@ const catalog = releases
     slug,
     title: config.title,
     artist: config.artist,
+    ...(config.releaseDate ? { releaseDate: config.releaseDate } : {}),
     artwork: isRemoteUrl(config.artwork)
       ? config.artwork
       : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).pathname,
     url: `/${slug}/`,
-  }));
+  }))
+  .sort((left, right) => {
+    if (left.releaseDate && right.releaseDate && left.releaseDate !== right.releaseDate) {
+      return right.releaseDate.localeCompare(left.releaseDate);
+    }
+    if (left.releaseDate) return -1;
+    if (right.releaseDate) return 1;
+    return left.title.localeCompare(right.title) || left.slug.localeCompare(right.slug);
+  });
 await writeFile(path.join(root, "discography.json"), `${JSON.stringify(catalog, null, 2)}\n`);
 
 for (const { slug, releaseDir, config, isPrivate } of releases) {

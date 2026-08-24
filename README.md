@@ -28,6 +28,8 @@ AWS, duplicate, upload, or validation failures leave the complete draft intact
 so it can be corrected and retried. It supports single- and multi-track
 releases, track ordering, lyrics, About text, artist overrides, and force mode.
 It does not use AI or deploy the site.
+Release dates are optional (`YYYY-MM-DD`). Dated releases appear newest-first in
+the discography; releases without a date remain valid and sort after them.
 
 The terminal workflow remains available:
 
@@ -109,6 +111,7 @@ optional and falls back to the release artist.
 {
   "title": "Release title",
   "artist": "Artist name",
+  "releaseDate": "2026-08-24",
   "artwork": "https://media.example.com/artwork.jpg",
   "tracks": [
     {
