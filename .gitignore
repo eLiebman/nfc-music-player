@@ -1,2 +1,11 @@
 .DS_Store
 **/.DS_Store
+.release-drafts/
+
+# Local-only release builder. Never publish its UI or server with GitHub Pages.
+scripts/release-ui.mjs
+scripts/release-ui/
+
+# Local QA releases and their generated routes must never reach production.
+/test-*/
+/releases/test-*/

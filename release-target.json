@@ -1,5 +1,5 @@
 {
-  "awsProfile": "elliotwavs",
+  "awsProfile": "elliotwavs-release",
   "region": "us-east-2",
   "bucket": "elliotwavs-assets",
   "mediaOrigin": "https://media.elliotwavs.com"

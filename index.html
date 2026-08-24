@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#12131a">
     <title>Elliot.wavs</title>
     <meta name="description" content="Physical music releases by Elliot.wavs">
-    <link rel="stylesheet" href="./assets/app.css?v=12">
+    <link rel="stylesheet" href="./assets/app.css?v=38">
     <script>
       const release = new URLSearchParams(location.search).get("release");
       if (release && /^[a-z0-9][a-z0-9-]*$/i.test(release)) {
@@ -14,9 +14,12 @@
       }
     </script>
   </head>
-  <body>
+  <body data-discography="./discography.json">
     <main class="player" data-player data-state="loading">
       <div class="backdrop" aria-hidden="true"></div>
+      <button class="discography-toggle" type="button" data-discography-toggle aria-label="Open discography" aria-controls="discography" aria-expanded="false">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 8 6h16l3 5v14H5Z"/><path d="M8 10h16M9 8h14M8 14h16M8 17h16M8 20h16"/></svg>
+      </button>
       <div class="player-shell">
         <header class="release-meta">
           <p class="artist" data-artist>Loading</p>
@@ -25,16 +28,63 @@
         <section class="disc-stage" aria-label="Audio player">
           <button class="disc-button" type="button" data-disc-button disabled aria-label="Loading release">
             <img class="disc-artwork" data-artwork alt="">
+            <span class="play-affordance" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M11 7.6v16.8L24 16 11 7.6Z"/></svg>
+            </span>
           </button>
         </section>
         <footer class="release-footer">
           <p class="edition" data-edition hidden></p>
           <p class="status" data-status role="status" aria-live="polite" hidden></p>
         </footer>
+        <aside class="track-dock" data-track-dock aria-label="Current track">
+          <button class="track-summary" type="button" data-drawer-toggle aria-expanded="false" aria-controls="lyrics-drawer">
+            <span class="track-kicker" data-track-position>Track 1</span>
+            <strong data-track-title>Loading</strong>
+          </button>
+          <div class="track-controls" aria-label="Track controls">
+            <button type="button" data-previous-track aria-label="Previous track">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 8h3v16H9zM24 8v16L13 16 24 8z"/></svg>
+            </button>
+            <button type="button" data-next-track aria-label="Next track">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M20 8h3v16h-3zM8 8v16l11-8L8 8z"/></svg>
+            </button>
+          </div>
+        </aside>
+        <button class="drawer-peek" type="button" data-drawer-peek aria-label="Open track information" aria-controls="lyrics-drawer" aria-expanded="false">
+          <svg viewBox="0 0 32 18" aria-hidden="true"><path d="m8 13 8-8 8 8"/></svg>
+        </button>
       </div>
+      <section class="lyrics-drawer" id="lyrics-drawer" data-lyrics-drawer aria-hidden="true" aria-label="Track information">
+        <button class="drawer-handle" type="button" data-drawer-close aria-label="Close track information"><span></span></button>
+        <header>
+          <p data-drawer-artist>Artist</p>
+          <h2 data-drawer-title>Song</h2>
+        </header>
+        <nav class="drawer-tabs" role="tablist" aria-label="Track details">
+          <button type="button" role="tab" data-drawer-tab="lyrics" aria-controls="lyrics-panel">Lyrics</button>
+          <button type="button" role="tab" data-drawer-tab="about" aria-controls="about-panel">About</button>
+        </nav>
+        <div class="drawer-content" data-drawer-content>
+          <div class="drawer-panel lyrics" role="tabpanel" id="lyrics-panel" data-drawer-panel="lyrics" data-lyrics></div>
+          <div class="drawer-panel about" role="tabpanel" id="about-panel" data-drawer-panel="about" data-about></div>
+        </div>
+      </section>
+      <section class="discography-overlay" id="discography" data-discography aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="discography-title">
+        <header>
+          <div>
+            <p>Browse</p>
+            <h2 id="discography-title">Discography</h2>
+          </div>
+          <button type="button" data-discography-close aria-label="Close discography">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m8 8 16 16M24 8 8 24"/></svg>
+          </button>
+        </header>
+        <div class="discography-grid" data-discography-list><p>Loading releases…</p></div>
+      </section>
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="./assets/player.js?v=31"></script>
+    <script type="module" src="./assets/player.js?v=54"></script>
   </body>
 </html>

@@ -22,7 +22,13 @@ function pageHtml(slug, config) {
   const artworkUrl = isRemoteUrl(config.artwork)
     ? config.artwork
     : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).href;
+  const displayArtwork = config.displayArtwork || config.artwork;
+  const resolvedDisplayArtwork = new URL(displayArtwork, `${siteOrigin}/releases/${slug}/`);
+  const displayArtworkUrl = isRemoteUrl(displayArtwork)
+    ? displayArtwork
+    : `${resolvedDisplayArtwork.pathname}${resolvedDisplayArtwork.search}`;
   const pageUrl = `${siteOrigin}/${slug}/`;
+  const ogType = Array.isArray(config.tracks) && config.tracks.length > 1 ? "music.album" : "music.song";
 
   return `<!doctype html>
 <html lang="en">
@@ -32,7 +38,7 @@ function pageHtml(slug, config) {
     <meta name="theme-color" content="#12131a">
     <title>${title}</title>
     <meta name="description" content="${description}">
-    <meta property="og:type" content="music.song">
+    <meta property="og:type" content="${ogType}">
     <meta property="og:site_name" content="Elliot.wavs">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${artist}">
@@ -44,11 +50,14 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=12">
+    <link rel="stylesheet" href="../assets/app.css?v=38">
   </head>
-  <body data-config="../releases/${slug}/config.json">
+  <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
     <main class="player" data-player data-state="loading">
       <div class="backdrop" aria-hidden="true"></div>
+      <button class="discography-toggle" type="button" data-discography-toggle aria-label="Open discography" aria-controls="discography" aria-expanded="false">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 8 6h16l3 5v14H5Z"/><path d="M8 10h16M9 8h14M8 14h16M8 17h16M8 20h16"/></svg>
+      </button>
       <div class="player-shell">
         <header class="release-meta">
           <p class="artist" data-artist>Loading</p>
@@ -56,35 +65,103 @@ function pageHtml(slug, config) {
         </header>
         <section class="disc-stage" aria-label="Audio player">
           <button class="disc-button" type="button" data-disc-button disabled aria-label="Loading release">
-            <img class="disc-artwork" data-artwork alt="">
+            <img class="disc-artwork" data-artwork src="${escapeHtml(displayArtworkUrl)}" alt="${title} artwork" crossorigin="anonymous">
+            <span class="play-affordance" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M11 7.6v16.8L24 16 11 7.6Z"/></svg>
+            </span>
           </button>
         </section>
         <footer class="release-footer">
           <p class="edition" data-edition hidden></p>
           <p class="status" data-status role="status" aria-live="polite" hidden></p>
         </footer>
+        <aside class="track-dock" data-track-dock aria-label="Current track">
+          <button class="track-summary" type="button" data-drawer-toggle aria-expanded="false" aria-controls="lyrics-drawer">
+            <span class="track-kicker" data-track-position>Track 1</span>
+            <strong data-track-title>Loading</strong>
+          </button>
+          <div class="track-controls" aria-label="Track controls">
+            <button type="button" data-previous-track aria-label="Previous track">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 8h3v16H9zM24 8v16L13 16 24 8z"/></svg>
+            </button>
+            <button type="button" data-next-track aria-label="Next track">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M20 8h3v16h-3zM8 8v16l11-8L8 8z"/></svg>
+            </button>
+          </div>
+        </aside>
+        <button class="drawer-peek" type="button" data-drawer-peek aria-label="Open track information" aria-controls="lyrics-drawer" aria-expanded="false">
+          <svg viewBox="0 0 32 18" aria-hidden="true"><path d="m8 13 8-8 8 8"/></svg>
+        </button>
       </div>
+      <section class="lyrics-drawer" id="lyrics-drawer" data-lyrics-drawer aria-hidden="true" aria-label="Track information">
+        <button class="drawer-handle" type="button" data-drawer-close aria-label="Close track information"><span></span></button>
+        <header>
+          <p data-drawer-artist>Artist</p>
+          <h2 data-drawer-title>Song</h2>
+        </header>
+        <nav class="drawer-tabs" role="tablist" aria-label="Track details">
+          <button type="button" role="tab" data-drawer-tab="lyrics" aria-controls="lyrics-panel">Lyrics</button>
+          <button type="button" role="tab" data-drawer-tab="about" aria-controls="about-panel">About</button>
+        </nav>
+        <div class="drawer-content" data-drawer-content>
+          <div class="drawer-panel lyrics" role="tabpanel" id="lyrics-panel" data-drawer-panel="lyrics" data-lyrics></div>
+          <div class="drawer-panel about" role="tabpanel" id="about-panel" data-drawer-panel="about" data-about></div>
+        </div>
+      </section>
+      <section class="discography-overlay" id="discography" data-discography aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="discography-title">
+        <header>
+          <div>
+            <p>Browse</p>
+            <h2 id="discography-title">Discography</h2>
+          </div>
+          <button type="button" data-discography-close aria-label="Close discography">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m8 8 16 16M24 8 8 24"/></svg>
+          </button>
+        </header>
+        <div class="discography-grid" data-discography-list><p>Loading releases…</p></div>
+      </section>
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=31"></script>
+    <script type="module" src="../assets/player.js?v=54"></script>
   </body>
 </html>
 `;
 }
 
 const entries = await readdir(releasesRoot, { withFileTypes: true });
+const releases = [];
 for (const entry of entries) {
   if (!entry.isDirectory()) continue;
   const slug = entry.name;
   const releaseDir = path.join(releasesRoot, slug);
-
+  let isPrivate = false;
   try {
     await access(path.join(releaseDir, ".no-share"));
-    if (!includePrivate) continue;
+    isPrivate = true;
   } catch {}
-
   const config = JSON.parse(await readFile(path.join(releaseDir, "config.json"), "utf8"));
+  releases.push({ slug, releaseDir, config, isPrivate });
+}
+
+const catalog = releases
+  .filter((release) => !release.isPrivate)
+  .map(({ slug, config }) => ({
+    slug,
+    title: config.title,
+    artist: config.artist,
+    artwork: isRemoteUrl(config.artwork)
+      ? config.artwork
+      : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).pathname,
+    url: `/${slug}/`,
+  }));
+await writeFile(path.join(root, "discography.json"), `${JSON.stringify(catalog, null, 2)}\n`);
+
+for (const { slug, releaseDir, config, isPrivate } of releases) {
+  if (isPrivate && !includePrivate) {
+    await rm(path.join(root, slug), { recursive: true, force: true });
+    continue;
+  }
   const outputDir = path.join(root, slug);
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });

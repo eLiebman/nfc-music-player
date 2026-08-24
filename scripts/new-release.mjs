@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const releasesRoot = path.join(root, "releases");
-const requiredConfigFields = ["title", "artist", "audio", "artwork"];
+const requiredConfigFields = ["title", "artist", "artwork"];
 
 function parseArgs(argv) {
   const args = {};
@@ -86,10 +86,10 @@ function contentHash(value, kind) {
   return String(value || "").match(new RegExp(`${kind}-([a-f0-9]{12})(?:\\.[^/?#]+)?(?:[?#]|$)`, "i"))?.[1]?.toLowerCase();
 }
 
-async function findDuplicateRelease({ slug, title, artist, audioKey }) {
+async function findDuplicateRelease({ slug, title, artist, audioKeys }) {
   const wantedTitle = normalizeMetadata(title);
   const wantedArtist = normalizeMetadata(artist);
-  const wantedAudioHash = contentHash(audioKey, "audio");
+  const wantedAudioHashes = new Set(audioKeys.map((key) => contentHash(key, "audio")).filter(Boolean));
   const duplicates = [];
 
   for (const entry of await readdir(releasesRoot, { withFileTypes: true })) {
@@ -104,9 +104,14 @@ async function findDuplicateRelease({ slug, title, artist, audioKey }) {
       && normalizeMetadata(existing.artist) === wantedArtist) {
       reasons.push("same title and artist");
     }
-    const existingAudioHash = contentHash(existing.audio, "audio");
-    if (wantedAudioHash && existingAudioHash === wantedAudioHash) {
-      reasons.push(`same audio content hash ${wantedAudioHash}`);
+    const existingAudioUrls = Array.isArray(existing.tracks)
+      ? existing.tracks.map((track) => track.audio)
+      : [existing.audio];
+    const matchingAudioHashes = existingAudioUrls
+      .map((url) => contentHash(url, "audio"))
+      .filter((hash) => hash && wantedAudioHashes.has(hash));
+    if (matchingAudioHashes.length) {
+      reasons.push(`same audio content hash ${[...new Set(matchingAudioHashes)].join(", ")}`);
     }
     if (reasons.length) duplicates.push(`${entry.name} (${reasons.join(", ")})`);
   }
@@ -144,13 +149,36 @@ Options:
   --title <title>
   --artist <artist>
   --audio <path>
+  --track-count <number>    Interactive multi-track release
+  --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
   --artwork <path>
   --edition <text>
   --slug <lowercase-kebab-case>
   --yes                     Skip the upload confirmation
   --force                   Reuse an existing slug and allow duplicates
+  --no-prompt               Fail instead of asking for duplicate/overwrite confirmation
   --help
 `);
+}
+
+async function readTrackManifest(filePath) {
+  const resolvedPath = path.resolve(normalizeFileInput(filePath));
+  const parsed = JSON.parse(await readFile(resolvedPath, "utf8"));
+  if (!Array.isArray(parsed) || parsed.length < 2) {
+    throw new Error("--tracks must point to a JSON array containing at least two tracks");
+  }
+  return parsed.map((track, index) => {
+    if (!track?.title || !track?.audio) {
+      throw new Error(`Track ${index + 1} in ${resolvedPath} requires title and audio`);
+    }
+    return {
+      title: String(track.title).trim(),
+      audioPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.audio)),
+      ...(track.artist ? { artist: String(track.artist).trim() } : {}),
+      ...(track.lyrics ? { lyrics: String(track.lyrics) } : {}),
+      ...(track.about ? { about: String(track.about) } : {}),
+    };
+  });
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -169,7 +197,45 @@ const ask = async (label, supplied = "") => {
 try {
   const title = await ask("Release title", args.title);
   const artist = await ask("Artist credit", args.artist);
-  const audioInput = await ask("Audio file", args.audio);
+  let trackInputs;
+  if (args.tracks && args.tracks !== true) {
+    trackInputs = await readTrackManifest(args.tracks);
+  } else {
+    const suppliedTrackCount = args["track-count"] && args["track-count"] !== true
+      ? String(args["track-count"])
+      : args.audio
+        ? "1"
+        : "";
+    const trackCountAnswer = suppliedTrackCount
+      || (await rl.question("Number of tracks [1]: ")).trim()
+      || "1";
+    const trackCount = Number(trackCountAnswer);
+    if (!Number.isInteger(trackCount) || trackCount < 1) {
+      throw new Error("Track count must be a positive whole number");
+    }
+    if (trackCount === 1) {
+      const audioInput = await ask("Audio file", args.audio);
+      trackInputs = [{ title, audioPath: path.resolve(normalizeFileInput(audioInput)) }];
+    } else {
+      if (args.audio) throw new Error("Use interactive audio prompts or --tracks for multi-track releases");
+      trackInputs = [];
+      for (let index = 0; index < trackCount; index += 1) {
+        console.log(`\nTrack ${index + 1} of ${trackCount}`);
+        const trackTitle = await ask("  Title");
+        const audioInput = await ask("  Audio file");
+        const trackArtist = (await rl.question("  Artist override (optional): ")).trim();
+        const lyrics = (await rl.question("  Lyrics (optional; use --tracks for multiline): ")).trim();
+        const about = (await rl.question("  About (optional; use --tracks for multiline): ")).trim();
+        trackInputs.push({
+          title: trackTitle,
+          audioPath: path.resolve(normalizeFileInput(audioInput)),
+          ...(trackArtist ? { artist: trackArtist } : {}),
+          ...(lyrics ? { lyrics } : {}),
+          ...(about ? { about } : {}),
+        });
+      }
+    }
+  }
   const artworkInput = await ask("Artwork file", args.artwork);
   const defaultSlug = slugify(title);
   const slugAnswer = args.slug
@@ -182,21 +248,27 @@ try {
       ? String(args.edition).trim()
       : (await rl.question("Edition/footer text (optional): ")).trim();
 
-  if (!title || !artist || !audioInput || !artworkInput) {
-    throw new Error("Title, artist, audio, and artwork are required");
+  if (!title || !artist || !trackInputs.length || !artworkInput) {
+    throw new Error("Title, artist, at least one audio track, and artwork are required");
   }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
     throw new Error("Slug must be lowercase kebab-case");
   }
 
-  const audioPath = path.resolve(normalizeFileInput(audioInput));
   const artworkPath = path.resolve(normalizeFileInput(artworkInput));
-  await Promise.all([access(audioPath), access(artworkPath), access(path.join(root, "release-target.json"))]);
+  await Promise.all([
+    ...trackInputs.map((track) => access(track.audioPath)),
+    access(artworkPath),
+    access(path.join(root, "release-target.json")),
+  ]);
 
   const releaseDir = path.join(releasesRoot, slug);
   const releaseDirExists = await pathExists(releaseDir);
   if (releaseDirExists && !args.force) {
     console.warn(`\nWarning: releases/${slug} already exists.`);
+    if (args["no-prompt"]) {
+      throw new Error(`Release ${slug} already exists. Enable force to replace it.`);
+    }
     const confirmation = (await rl.question("Reuse it and replace its config? [y/N]: ")).trim().toLowerCase();
     if (!["y", "yes"].includes(confirmation)) {
       console.log("Release cancelled. Existing files were not changed.");
@@ -204,11 +276,24 @@ try {
     }
   }
 
-  const uploadArgs = ["--slug", slug, "--audio", audioPath, "--artwork", artworkPath];
+  const uploadArgs = [
+    "--slug", slug,
+    ...trackInputs.flatMap((track) => ["--audio", track.audioPath]),
+    "--artwork", artworkPath,
+  ];
   const preview = parseUploadResult(runNode("upload-release-assets.mjs", [...uploadArgs, "--dry-run"]));
-  const duplicates = await findDuplicateRelease({ slug, title, artist, audioKey: preview.audio.key });
+  const previewAudios = preview.audios || [preview.audio];
+  const duplicates = await findDuplicateRelease({
+    slug,
+    title,
+    artist,
+    audioKeys: previewAudios.map((audio) => audio.key),
+  });
   if (duplicates.length && !args.force) {
     console.warn(`\nWarning: possible duplicate release found: ${duplicates.join("; ")}`);
+    if (args["no-prompt"]) {
+      throw new Error(`Possible duplicate release found: ${duplicates.join("; ")}. Enable force to continue.`);
+    }
     const confirmation = (await rl.question("Create this release anyway? [y/N]: ")).trim().toLowerCase();
     if (!["y", "yes"].includes(confirmation)) {
       console.log("Release cancelled. Nothing uploaded or created.");
@@ -216,7 +301,9 @@ try {
     }
   }
   console.log("\nUpload preview:");
-  console.log(`  ${preview.audio.key}`);
+  for (const [index, audio] of previewAudios.entries()) {
+    console.log(`  Track ${index + 1}: ${audio.key}`);
+  }
   console.log(`  ${preview.artwork.key}`);
 
   if (!args.yes) {
@@ -237,20 +324,32 @@ try {
     await rm(uploadResultPath, { force: true });
   }
   console.log("Checking uploaded assets through CloudFront...");
+  const uploadedAudios = uploaded.audios || [uploaded.audio];
   await Promise.all([
-    validateRemoteAsset(uploaded.audio.url, "audio/"),
+    ...uploadedAudios.map((audio) => validateRemoteAsset(audio.url, "audio/")),
     validateRemoteAsset(uploaded.artwork.url, "image/"),
   ]);
 
   const config = {
     title,
     artist,
-    audio: uploaded.audio.url,
     artwork: uploaded.artwork.url,
     ...(edition ? { edition } : {}),
+    ...(trackInputs.length === 1
+      ? { audio: uploadedAudios[0].url }
+      : {
+          tracks: trackInputs.map((track, index) => ({
+            title: track.title,
+            ...(track.artist ? { artist: track.artist } : {}),
+            audio: uploadedAudios[index].url,
+            ...(track.lyrics ? { lyrics: track.lyrics } : {}),
+            ...(track.about ? { about: track.about } : {}),
+          })),
+        }),
   };
   const missing = requiredConfigFields.filter((field) => !config[field]);
   if (missing.length) throw new Error(`Missing config fields: ${missing.join(", ")}`);
+  if (!config.audio && !config.tracks?.length) throw new Error("Config requires audio or tracks");
 
   await mkdir(releaseDir, { recursive: true });
   const configPath = path.join(releaseDir, "config.json");

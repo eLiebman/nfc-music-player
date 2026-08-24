@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "im-not-scared-now",
+    "title": "i'm not scared now",
+    "artist": "Elliot.wavs",
+    "artwork": "https://media.elliotwavs.com/releases/im-not-scared-now/artwork-86f6931300a5.jpg",
+    "url": "/im-not-scared-now/"
+  },
+  {
+    "slug": "just-friends",
+    "title": "Just Friends",
+    "artist": "Elliot.wavs feat. Dizparity",
+    "artwork": "https://media.elliotwavs.com/releases/just-friends/__Just%20Friends-SingleCover-Square_FinalEdit.jpg?v=2",
+    "url": "/just-friends/"
+  },
+  {
+    "slug": "low-energy",
+    "title": "low energy",
+    "artist": "Elliot.wavs",
+    "artwork": "https://media.elliotwavs.com/releases/low-energy/artwork.jpg?v=2",
+    "url": "/low-energy/"
+  },
+  {
+    "slug": "tumble-trusko-mix",
+    "title": "Tumble (Trusko Mix)",
+    "artist": "Elliot.wavs, Robert Trusko, Cameron McCloud",
+    "artwork": "https://media.elliotwavs.com/releases/tumble-trusko-mix/artwork-0720c9fdbd17.jpg",
+    "url": "/tumble-trusko-mix/"
+  },
+  {
+    "slug": "way-i-do",
+    "title": "Way I Do",
+    "artist": "Elliot.wavs feat. Cameron McCloud",
+    "artwork": "https://media.elliotwavs.com/releases/way-i-do/artwork-b5fcf5b4da53.jpg",
+    "url": "/way-i-do/"
+  },
+  {
+    "slug": "wrong-ones",
+    "title": "Wrong Ones",
+    "artist": "Elliot.wavs",
+    "artwork": "https://media.elliotwavs.com/releases/wrong-ones/artwork-0eff6f4020f6.jpg",
+    "url": "/wrong-ones/"
+  }
+]

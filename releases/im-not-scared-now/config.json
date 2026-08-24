@@ -1,0 +1,28 @@
+{
+  "title": "i'm not scared now",
+  "artist": "Elliot.wavs",
+  "artwork": "https://media.elliotwavs.com/releases/im-not-scared-now/artwork-86f6931300a5.jpg",
+  "edition": "© Elliot.wavs 2023",
+  "tracks": [
+    {
+      "title": "I'm Not Scared Now",
+      "audio": "https://media.elliotwavs.com/releases/im-not-scared-now/audio-68871f8fa6c5.wav"
+    },
+    {
+      "title": "When You Were Here",
+      "audio": "https://media.elliotwavs.com/releases/im-not-scared-now/audio-ba2910d770ae.wav"
+    },
+    {
+      "title": "Tumble",
+      "audio": "https://media.elliotwavs.com/releases/im-not-scared-now/audio-77a6a17899a6.wav"
+    },
+    {
+      "title": "twenty five",
+      "audio": "https://media.elliotwavs.com/releases/im-not-scared-now/audio-38ff8c892f2e.wav"
+    },
+    {
+      "title": "So Long",
+      "audio": "https://media.elliotwavs.com/releases/im-not-scared-now/audio-02e520966e11.wav"
+    }
+  ]
+}

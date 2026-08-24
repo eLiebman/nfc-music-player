@@ -7,19 +7,33 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = JSON.parse(await readFile(path.join(root, "release-target.json"), "utf8"));
-const args = Object.fromEntries(process.argv.slice(2).map((arg, index, all) => {
-  if (!arg.startsWith("--")) return [];
-  return [arg.slice(2), all[index + 1]?.startsWith("--") ? true : all[index + 1] ?? true];
-}).filter((entry) => entry.length));
+function parseArgs(argv) {
+  const parsed = {};
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token.startsWith("--")) throw new Error(`Unexpected argument: ${token}`);
+    const name = token.slice(2);
+    const next = argv[index + 1];
+    const value = next && !next.startsWith("--") ? argv[++index] : true;
+    if (name === "audio") {
+      parsed.audio = [...(parsed.audio || []), value];
+    } else {
+      parsed[name] = value;
+    }
+  }
+  return parsed;
+}
+
+const args = parseArgs(process.argv.slice(2));
 
 const slug = String(args.slug || "");
-const audioPath = path.resolve(String(args.audio || ""));
+const audioPaths = (args.audio || []).map((value) => path.resolve(String(value)));
 const artworkPath = path.resolve(String(args.artwork || ""));
 const dryRun = args["dry-run"] === true;
 
 if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error("--slug must be lowercase kebab-case");
-if (!args.audio || !args.artwork) throw new Error("Usage: upload-release-assets.mjs --slug <slug> --audio <path> --artwork <path> [--dry-run]");
-await Promise.all([access(audioPath), access(artworkPath)]);
+if (!audioPaths.length || !args.artwork) throw new Error("Usage: upload-release-assets.mjs --slug <slug> --audio <path> [--audio <path> ...] --artwork <path> [--dry-run]");
+await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), access(artworkPath)]);
 
 function runAws(commandArgs, { allowFailure = false, interactive = false } = {}) {
   const candidates = ["aws", path.join(process.env.HOME || "", ".local/bin/aws")];
@@ -66,7 +80,10 @@ async function asset(filePath, kind) {
   };
 }
 
-const [audio, artwork] = await Promise.all([asset(audioPath, "audio"), asset(artworkPath, "artwork")]);
+const [audios, artwork] = await Promise.all([
+  Promise.all(audioPaths.map((audioPath) => asset(audioPath, "audio"))),
+  asset(artworkPath, "artwork"),
+]);
 
 if (!dryRun) {
   console.error("Checking AWS credentials...");
@@ -92,8 +109,8 @@ if (!dryRun) {
   }
   console.error("S3 bucket verified.");
 
-  for (const item of [audio, artwork]) {
-    const kind = item === audio ? "audio" : "artwork";
+  for (const item of [...audios, artwork]) {
+    const kind = item === artwork ? "artwork" : "audio";
     console.error(`Uploading ${kind}: ${path.basename(item.filePath)}`);
     runAws([
       "s3", "cp", item.filePath, `s3://${target.bucket}/${item.key}`,
@@ -111,7 +128,10 @@ if (!dryRun) {
   }
 }
 
-const result = `${JSON.stringify({ dryRun, audio, artwork }, null, 2)}\n`;
+const resultPayload = audios.length === 1
+  ? { dryRun, audio: audios[0], artwork }
+  : { dryRun, audios, artwork };
+const result = `${JSON.stringify(resultPayload, null, 2)}\n`;
 if (args["result-file"] && args["result-file"] !== true) {
   await writeFile(path.resolve(String(args["result-file"])), result);
 } else {
