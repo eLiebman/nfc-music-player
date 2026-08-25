@@ -872,7 +872,10 @@ player.addEventListener("touchend", (event) => {
 
 lyricsDrawer.addEventListener("pointerdown", (event) => {
   if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen !== "true") return;
-  if (drawerContent.scrollTop <= 0) beginDrawerVerticalGesture(event.clientX, event.clientY, "close");
+  const startsInScrollableContent = Boolean(event.target.closest("[data-drawer-content]"));
+  if (!startsInScrollableContent || drawerContent.scrollTop <= 0) {
+    beginDrawerVerticalGesture(event.clientX, event.clientY, "close");
+  }
 });
 lyricsDrawer.addEventListener("pointerup", (event) => {
   if (event.pointerType !== "touch" && drawerVerticalGesture?.direction === "close") {
@@ -880,7 +883,9 @@ lyricsDrawer.addEventListener("pointerup", (event) => {
   }
 });
 lyricsDrawer.addEventListener("touchstart", (event) => {
-  if (player.dataset.drawerOpen !== "true" || drawerContent.scrollTop > 0) return;
+  if (player.dataset.drawerOpen !== "true") return;
+  const startsInScrollableContent = Boolean(event.target.closest("[data-drawer-content]"));
+  if (startsInScrollableContent && drawerContent.scrollTop > 0) return;
   const touch = event.touches[0];
   if (touch) beginDrawerVerticalGesture(touch.clientX, touch.clientY, "close");
 }, { passive: true });
