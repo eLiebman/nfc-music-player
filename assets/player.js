@@ -128,6 +128,7 @@ function setActiveDrawerTab(name) {
   const available = availableDrawerTabs();
   if (!available.includes(name)) name = available[0] || "lyrics";
   activeDrawerTab = name;
+  drawerContent.scrollTop = 0;
   for (const tab of drawerTabs) {
     const selected = tab.dataset.drawerTab === name && !tab.hidden;
     tab.setAttribute("aria-selected", String(selected));
