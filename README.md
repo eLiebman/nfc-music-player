@@ -40,6 +40,9 @@ node scripts/new-release.mjs
 The script previews the immutable S3 keys, asks before uploading, writes the
 release config, generates the page, validates the uploaded assets and metadata,
 then prints the local visual-QA link. It does not use AI or deploy the site.
+WAV masters are trimmed conservatively at both edges before hashing and upload:
+samples below -60 dB are treated as silence and 20 ms of safety padding is
+retained. Non-WAV files are uploaded unchanged when `ffmpeg` is unavailable.
 Choose the number of tracks when prompted. A single track keeps the compact
 top-level `audio` config; two or more tracks produce a `tracks` array and prompt
 for each title, audio file, optional artist override, lyrics, and About text.

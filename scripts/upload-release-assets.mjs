@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, readFile, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { trimWavFile } from "./trim-wav.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = JSON.parse(await readFile(path.join(root, "release-target.json"), "utf8"));
@@ -34,6 +36,21 @@ const dryRun = args["dry-run"] === true;
 if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error("--slug must be lowercase kebab-case");
 if (!audioPaths.length && !artworkPath) throw new Error("Provide at least one --audio or --artwork file");
 await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), ...(artworkPath ? [access(artworkPath)] : [])]);
+
+const preparedAudioPaths = await Promise.all(audioPaths.map(async (audioPath, index) => {
+  if (path.extname(audioPath).toLowerCase() !== ".wav") {
+    console.error(`Silence trimming skipped for non-WAV audio: ${path.basename(audioPath)}`);
+    return audioPath;
+  }
+  const outputPath = path.join(tmpdir(), `nfc-trim-${process.pid}-${Date.now()}-${index}.wav`);
+  const trimmed = await trimWavFile(audioPath, outputPath);
+  if (trimmed.changed) {
+    console.error(`Trimmed silence from ${path.basename(audioPath)}: ${trimmed.trimmedStartSeconds.toFixed(3)}s start, ${trimmed.trimmedEndSeconds.toFixed(3)}s end`);
+  } else {
+    console.error(`No removable edge silence found in ${path.basename(audioPath)}`);
+  }
+  return outputPath;
+}));
 
 function runAws(commandArgs, { allowFailure = false, interactive = false } = {}) {
   const candidates = ["aws", path.join(process.env.HOME || "", ".local/bin/aws")];
@@ -81,7 +98,7 @@ async function asset(filePath, kind) {
 }
 
 const [audios, artwork] = await Promise.all([
-  Promise.all(audioPaths.map((audioPath) => asset(audioPath, "audio"))),
+  Promise.all(preparedAudioPaths.map((audioPath) => asset(audioPath, "audio"))),
   artworkPath ? asset(artworkPath, "artwork") : null,
 ]);
 
@@ -139,3 +156,6 @@ if (args["result-file"] && args["result-file"] !== true) {
 } else {
   process.stdout.write(result);
 }
+await Promise.all(preparedAudioPaths
+  .filter((preparedPath, index) => preparedPath !== audioPaths[index])
+  .map((preparedPath) => rm(preparedPath, { force: true })));

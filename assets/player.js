@@ -682,14 +682,21 @@ function requestFullscreenOnce() {
 
 async function play({ requestFullscreen = true } = {}) {
   if (requestFullscreen) requestFullscreenOnce();
-  if (state === "ended") audio.currentTime = 0;
+  const replayingEndedTrack = audio.ended || state === "ending" || state === "ended";
+  if (replayingEndedTrack) {
+    audio.currentTime = 0;
+    releaseMeta.style.removeProperty("transition");
+    releaseFooter.style.removeProperty("transition");
+    releaseMeta.style.removeProperty("opacity");
+    releaseFooter.style.removeProperty("opacity");
+  }
   const isFirstStart = !hasStartedPlayback;
   let desiredResumeTimestamp = null;
   let needsMotorStart = false;
   endLanding = null;
   pendingMotorPause = false;
   if (VINYL_PITCH_MOTOR.enabled) {
-    if (isFirstStart) {
+    if (isFirstStart || replayingEndedTrack) {
       motorRunning = true;
       motorTransition = null;
       visualSpeed = 1 / SECONDS_PER_TURN;
