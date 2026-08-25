@@ -111,7 +111,13 @@ function normalizeTracks(release) {
     });
   }
   if (!release.audio) throw new Error("Release requires audio or a non-empty tracks array");
-  return [{ title: release.title, artist: release.artist, audio: release.audio, lyrics: release.lyrics || "" }];
+  return [{
+    title: release.title,
+    artist: release.artist,
+    audio: release.audio,
+    lyrics: release.lyrics || "",
+    about: release.about || "",
+  }];
 }
 
 function availableDrawerTabs() {

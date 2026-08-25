@@ -528,7 +528,38 @@ button, a { font: inherit; }
   appearance: none;
   cursor: pointer;
 }
-.drawer-peek { display: none; }
+.drawer-peek {
+  --drawer-peek-bottom-offset: 5rem;
+  position: absolute;
+  z-index: 25;
+  right: 0;
+  bottom: calc(var(--drawer-height) - 0.15rem);
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 8rem;
+  height: 0.82rem;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.45rem 0.45rem 0.14rem 0.14rem;
+  color: rgba(255, 255, 255, 0.52);
+  background: rgba(154, 160, 169, 0.13);
+  box-shadow: 0 -0.15rem 0.6rem rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(16px);
+  transform: translateY(calc(var(--drawer-height) - max(0.75rem, env(safe-area-inset-bottom)) - var(--drawer-peek-bottom-offset)));
+  transition: transform 380ms var(--ease), color 180ms ease, background 180ms ease;
+}
+.drawer-peek svg {
+  width: 0.82rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  transition: rotate 240ms var(--ease);
+}
+[data-multitrack="false"] .drawer-peek { --drawer-peek-bottom-offset: 1.1rem; }
+[data-drawer-open="true"] .drawer-peek { transform: translateY(0); }
+[data-drawer-open="true"] .drawer-peek svg { rotate: 180deg; }
+.drawer-peek:focus-visible { outline: 0.12rem solid var(--ink); outline-offset: 0.15rem; }
 .track-summary {
   min-width: 0;
   padding: 0.8rem 0.95rem;
@@ -741,40 +772,6 @@ button, a { font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-}
-
-@media (min-width: 700px) {
-  .drawer-peek {
-    position: absolute;
-    z-index: 25;
-    right: 0;
-    bottom: calc(var(--drawer-height) - 0.15rem);
-    left: 0;
-    display: grid;
-    place-items: center;
-    width: 8rem;
-    height: 0.82rem;
-    margin-inline: auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.45rem 0.45rem 0.14rem 0.14rem;
-    color: rgba(255, 255, 255, 0.52);
-    background: rgba(154, 160, 169, 0.13);
-    box-shadow: 0 -0.15rem 0.6rem rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(16px);
-    transform: translateY(calc(var(--drawer-height) - max(0.75rem, env(safe-area-inset-bottom)) - 5rem));
-    transition: transform 380ms var(--ease);
-  }
-  .drawer-peek svg {
-    width: 0.82rem;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.6;
-    transition: rotate 240ms var(--ease);
-  }
-  [data-drawer-open="true"] .drawer-peek { transform: translateY(0); }
-  [data-drawer-open="true"] .drawer-peek svg { rotate: 180deg; }
-  [data-multitrack="false"] .drawer-peek { display: none; }
-  .drawer-peek:focus-visible { outline: 0.12rem solid var(--ink); outline-offset: 0.15rem; }
 }
 
 @media (max-height: 600px) and (orientation: landscape) {
