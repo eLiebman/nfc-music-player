@@ -153,6 +153,7 @@ Options:
   --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
   --artwork <path>
   --edition <text>
+  --credits <text>         Release credits; Markdown links are supported
   --release-date <YYYY-MM-DD> Optional date used to sort the discography
   --slug <lowercase-kebab-case>
   --yes                     Skip the upload confirmation
@@ -248,6 +249,11 @@ try {
     : args.edition !== undefined
       ? String(args.edition).trim()
       : (await rl.question("Edition/footer text (optional): ")).trim();
+  const credits = args.credits === true
+    ? ""
+    : args.credits !== undefined
+      ? String(args.credits).trim()
+      : (await rl.question("Credits (optional; Markdown links supported): ")).trim();
   const releaseDate = args["release-date"] && args["release-date"] !== true
     ? String(args["release-date"]).trim()
     : "";
@@ -342,6 +348,7 @@ try {
     artist,
     artwork: uploaded.artwork.url,
     ...(edition ? { edition } : {}),
+    ...(credits ? { credits } : {}),
     ...(releaseDate ? { releaseDate } : {}),
     ...(trackInputs.length === 1
       ? { audio: uploadedAudios[0].url }

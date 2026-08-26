@@ -735,7 +735,8 @@ button, a { font: inherit; }
   white-space: pre-line;
 }
 .about { white-space: pre-wrap; }
-.about a { color: inherit; text-underline-offset: 0.18em; }
+.credits { white-space: pre-wrap; }
+.about a, .credits a { color: inherit; text-underline-offset: 0.18em; }
 
 .edition, .status {
   margin: 0.2rem 0;

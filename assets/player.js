@@ -32,6 +32,7 @@ const drawerTitle = document.querySelector("[data-drawer-title]");
 const drawerArtist = document.querySelector("[data-drawer-artist]");
 const lyrics = document.querySelector("[data-lyrics]");
 const about = document.querySelector("[data-about]");
+const credits = document.querySelector("[data-credits]");
 const drawerContent = document.querySelector("[data-drawer-content]");
 const drawerTabs = [...document.querySelectorAll("[data-drawer-tab]")];
 const drawerPanels = [...document.querySelectorAll("[data-drawer-panel]")];
@@ -124,14 +125,14 @@ function availableDrawerTabs() {
   return drawerTabs.filter((tab) => !tab.hidden).map((tab) => tab.dataset.drawerTab);
 }
 
-function renderAboutMarkdown(markdown) {
-  about.replaceChildren();
+function renderMarkdown(container, markdown) {
+  container.replaceChildren();
   const linkPattern = /\[([^\]\n]+)\]\(([^\s)]+)\)/g;
   let cursor = 0;
   let match;
 
   while ((match = linkPattern.exec(markdown))) {
-    about.append(document.createTextNode(markdown.slice(cursor, match.index)));
+    container.append(document.createTextNode(markdown.slice(cursor, match.index)));
 
     let url;
     try {
@@ -140,7 +141,7 @@ function renderAboutMarkdown(markdown) {
       url = null;
     }
     if (!url || !["http:", "https:", "mailto:"].includes(url.protocol)) {
-      about.append(document.createTextNode(match[0]));
+      container.append(document.createTextNode(match[0]));
     } else {
       const link = document.createElement("a");
       link.href = url.href;
@@ -149,12 +150,12 @@ function renderAboutMarkdown(markdown) {
         link.target = "_blank";
         link.rel = "noopener noreferrer";
       }
-      about.append(link);
+      container.append(link);
     }
     cursor = match.index + match[0].length;
   }
 
-  about.append(document.createTextNode(markdown.slice(cursor)));
+  container.append(document.createTextNode(markdown.slice(cursor)));
 }
 
 function setActiveDrawerTab(name) {
@@ -185,15 +186,18 @@ function updateTrackUi() {
   drawerArtist.textContent = track.artist;
   const lyricsText = track.lyrics?.trim() || "";
   const aboutText = track.about?.trim() || "";
-  const hasDrawerContent = Boolean(lyricsText || aboutText);
+  const creditsText = config?.credits?.trim() || "";
+  const hasDrawerContent = Boolean(lyricsText || aboutText || creditsText);
   player.dataset.hasDrawerContent = String(hasDrawerContent);
   drawerToggle.disabled = !hasDrawerContent;
   if (!hasDrawerContent && player.dataset.drawerOpen === "true") setDrawerOpen(false);
   lyrics.textContent = lyricsText;
-  renderAboutMarkdown(aboutText);
+  renderMarkdown(about, aboutText);
+  renderMarkdown(credits, creditsText);
   drawerTabs.find((tab) => tab.dataset.drawerTab === "lyrics").hidden = !lyricsText;
   drawerTabs.find((tab) => tab.dataset.drawerTab === "about").hidden = !aboutText;
-  setActiveDrawerTab(lyricsText ? "lyrics" : "about");
+  drawerTabs.find((tab) => tab.dataset.drawerTab === "credits").hidden = !creditsText;
+  setActiveDrawerTab(lyricsText ? "lyrics" : aboutText ? "about" : "credits");
   const hasPreviousTrack = currentTrackIndex > 0;
   const hasNextTrack = currentTrackIndex < tracks.length - 1;
   previousTrackButton.disabled = !hasPreviousTrack;

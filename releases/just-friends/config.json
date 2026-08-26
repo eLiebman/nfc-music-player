@@ -1,7 +1,9 @@
 {
   "title": "Just Friends",
   "artist": "Elliot.wavs feat. Dizparity",
-  "audio": "https://media.elliotwavs.com/releases/just-friends/audio-8064035b76f6.wav",
   "artwork": "https://media.elliotwavs.com/releases/just-friends/__Just%20Friends-SingleCover-Square_FinalEdit.jpg?v=2",
-  "edition": "© Elliot.wavs 2025`"
+  "edition": "© Elliot.wavs 2025`",
+  "credits": "Written by Elliot.wavs, ShaoHao and Dizparity\nPerformed by Elliot.wavs (Vocals, Guitars, Keyboards, Programming)\nProduced by Dizparity\nMixed by ShaoHao\nMastered by Chris Athens",
+  "releaseDate": "2026-03-13",
+  "audio": "https://media.elliotwavs.com/releases/just-friends/audio-8064035b76f6.wav"
 }

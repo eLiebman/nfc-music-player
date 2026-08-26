@@ -115,6 +115,7 @@ optional and falls back to the release artist.
   "title": "Release title",
   "artist": "Artist name",
   "releaseDate": "2026-08-24",
+  "credits": "Produced by Elliot.wavs. More at [Bandcamp](https://bandcamp.com/artist).",
   "artwork": "https://media.example.com/artwork.jpg",
   "tracks": [
     {
@@ -135,8 +136,9 @@ optional and falls back to the release artist.
 
 The player displays the current song in the footer, provides previous/next
 controls, advances automatically, and shows available lyrics or song notes in
-the swipe-up drawer. Missing Lyrics or About tabs are hidden automatically.
-About text supports Markdown-style links such as `[Bandcamp](https://bandcamp.com/artist)`;
-line breaks and other text are preserved.
+the swipe-up drawer. Release-level Credits and track-level Lyrics/About tabs are
+hidden automatically when empty. Markdown links in About and Credits open in a
+new tab so playback continues uninterrupted; line breaks and other text are
+preserved.
 
 The player has no accounts, analytics, database, secrets, upload UI, scrubber, volume UI, or playlist.
