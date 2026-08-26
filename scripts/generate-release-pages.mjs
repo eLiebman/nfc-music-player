@@ -19,6 +19,7 @@ function pageHtml(slug, config) {
   const title = escapeHtml(config.title);
   const artist = escapeHtml(config.artist);
   const description = escapeHtml(`${config.title} by ${config.artist}`);
+  const directVideo = config.video || (Array.isArray(config.tracks) ? config.tracks.find((track) => track?.video)?.video : "");
   const artworkUrl = isRemoteUrl(config.artwork)
     ? config.artwork
     : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).href;
@@ -51,10 +52,10 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=47">
+    <link rel="stylesheet" href="../assets/app.css?v=69">
   </head>
   <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
-    <main class="player" data-player data-state="loading">
+    <main class="player" data-player data-state="loading"${directVideo ? ` data-video-url="${escapeHtml(directVideo)}"` : ""}>
       <div class="backdrop" aria-hidden="true"></div>
       <button class="discography-toggle" type="button" data-discography-toggle aria-label="Open discography" aria-controls="discography" aria-expanded="false">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 8 6h16l3 5v14H5Z"/><path d="M8 10h16M9 8h14M8 14h16M8 17h16M8 20h16"/></svg>
@@ -121,12 +122,21 @@ function pageHtml(slug, config) {
             <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m8 8 16 16M24 8 8 24"/></svg>
           </button>
         </header>
-        <div class="discography-grid" data-discography-list><p>Loading releases…</p></div>
+        <div class="discography-grid discography-all-list">
+          <h2 class="discography-section-heading">Music</h2>
+          <div data-discography-audio-list><p>Loading releases…</p></div>
+          <h2 class="discography-section-heading" data-discography-video-heading hidden>Video</h2>
+          <div data-discography-video-list><p>Loading videos…</p></div>
+        </div>
+      </section>
+      <section class="video-viewer" data-video-viewer aria-hidden="true">
+        <button type="button" class="video-viewer-close" data-video-close aria-label="Close video">×</button>
+        <video data-video-player playsinline></video>
       </section>
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=61"></script>
+    <script type="module" src="../assets/player.js?v=83"></script>
   </body>
 </html>
 `;
@@ -158,6 +168,12 @@ const catalog = releases
       ? config.artwork
       : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).pathname,
     url: `/${slug}/`,
+    videos: (Array.isArray(config.tracks)
+      ? config.tracks.filter((track) => track?.video).map((track) => ({ title: track.title, video: track.video }))
+      : config.video ? [{ title: config.title, video: config.video }] : []),
+    ...(config.video || (Array.isArray(config.tracks) && config.tracks.some((track) => track?.video))
+      ? { videoUrl: `/${slug}/?video=1` }
+      : {}),
   }))
   .sort((left, right) => {
     if (left.releaseDate && right.releaseDate && left.releaseDate !== right.releaseDate) {

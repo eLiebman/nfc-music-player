@@ -7,7 +7,7 @@
     <script src="./assets/fullstory.js?v=1"></script>
     <title>Elliot.wavs — Discography</title>
     <meta name="description" content="Physical music releases by Elliot.wavs">
-    <link rel="stylesheet" href="./assets/app.css?v=47">
+    <link rel="stylesheet" href="./assets/app.css?v=69">
   </head>
   <body class="discography-home" data-discography="./discography.json">
     <main>
@@ -15,9 +15,14 @@
         <p>Browse</p>
         <h1>Discography</h1>
       </header>
-      <div class="discography-grid" data-discography-list><p>Loading releases…</p></div>
+      <div class="discography-grid discography-all-list">
+        <h2 class="discography-section-heading">Music</h2>
+        <div data-discography-audio-list><p>Loading releases…</p></div>
+        <h2 class="discography-section-heading" data-discography-video-heading hidden>Video</h2>
+        <div data-discography-video-list><p>Loading videos…</p></div>
+      </div>
     </main>
     <noscript>This discography requires JavaScript.</noscript>
-    <script type="module" src="./assets/discography.js?v=1"></script>
+    <script type="module" src="./assets/discography.js?v=3"></script>
   </body>
 </html>

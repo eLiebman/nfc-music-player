@@ -5,7 +5,14 @@
     "artist": "Elliot.wavs feat. Dizparity",
     "releaseDate": "2026-03-13",
     "artwork": "https://media.elliotwavs.com/releases/just-friends/__Just%20Friends-SingleCover-Square_FinalEdit.jpg?v=2",
-    "url": "/just-friends/"
+    "url": "/just-friends/",
+    "videos": [
+      {
+        "title": "Just Friends",
+        "video": "https://media.elliotwavs.com/releases/just-friends/video-bc643e183ea1.mp4"
+      }
+    ],
+    "videoUrl": "/just-friends/?video=1"
   },
   {
     "slug": "wrong-ones",
@@ -13,7 +20,8 @@
     "artist": "Elliot.wavs",
     "releaseDate": "2025-07-15",
     "artwork": "https://media.elliotwavs.com/releases/wrong-ones/artwork-0eff6f4020f6.jpg",
-    "url": "/wrong-ones/"
+    "url": "/wrong-ones/",
+    "videos": []
   },
   {
     "slug": "way-i-do",
@@ -21,7 +29,14 @@
     "artist": "Elliot.wavs feat. Cameron McCloud",
     "releaseDate": "2025-03-14",
     "artwork": "https://media.elliotwavs.com/releases/way-i-do/artwork-b5fcf5b4da53.jpg",
-    "url": "/way-i-do/"
+    "url": "/way-i-do/",
+    "videos": [
+      {
+        "title": "Way I Do",
+        "video": "https://media.elliotwavs.com/releases/way-i-do/video-bcbc84b24424.mp4"
+      }
+    ],
+    "videoUrl": "/way-i-do/?video=1"
   },
   {
     "slug": "tumble-trusko-mix",
@@ -29,7 +44,8 @@
     "artist": "Elliot.wavs, Robert Trusko, Cameron McCloud",
     "releaseDate": "2024-08-01",
     "artwork": "https://media.elliotwavs.com/releases/tumble-trusko-mix/artwork-0720c9fdbd17.jpg",
-    "url": "/tumble-trusko-mix/"
+    "url": "/tumble-trusko-mix/",
+    "videos": []
   },
   {
     "slug": "im-not-scared-now",
@@ -37,7 +53,8 @@
     "artist": "Elliot.wavs",
     "releaseDate": "2023-04-11",
     "artwork": "https://media.elliotwavs.com/releases/im-not-scared-now/artwork-86f6931300a5.jpg",
-    "url": "/im-not-scared-now/"
+    "url": "/im-not-scared-now/",
+    "videos": []
   },
   {
     "slug": "low-energy",
@@ -45,7 +62,8 @@
     "artist": "Elliot.wavs",
     "releaseDate": "2022-06-26",
     "artwork": "https://media.elliotwavs.com/releases/low-energy/artwork.jpg?v=2",
-    "url": "/low-energy/"
+    "url": "/low-energy/",
+    "videos": []
   },
   {
     "slug": "buy-and-hold",
@@ -53,6 +71,13 @@
     "artist": "Elliot.wavs feat. STONK!",
     "releaseDate": "2022-02-25",
     "artwork": "https://media.elliotwavs.com/releases/buy-and-hold/artwork-fff5ff231e56.jpg",
-    "url": "/buy-and-hold/"
+    "url": "/buy-and-hold/",
+    "videos": [
+      {
+        "title": "Buy and Hold",
+        "video": "https://media.elliotwavs.com/releases/buy-and-hold/video-40cf54f960ff.mp4"
+      }
+    ],
+    "videoUrl": "/buy-and-hold/?video=1"
   }
 ]

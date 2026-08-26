@@ -1,3 +1,5 @@
+import { renderDiscographyLists } from "./discography-list.js";
+
 const REQUIRED_FIELDS = ["title", "artist", "artwork"];
 const SECONDS_PER_TURN = 8;
 const MOTOR_ACCEL_DURATION_MS = 800;
@@ -39,7 +41,14 @@ const drawerPanels = [...document.querySelectorAll("[data-drawer-panel]")];
 const discographyToggle = document.querySelector("[data-discography-toggle]");
 const discographyOverlay = document.querySelector("[data-discography]");
 const discographyClose = document.querySelector("[data-discography-close]");
-const discographyList = document.querySelector("[data-discography-list]");
+const discographyAudioList = document.querySelector("[data-discography-audio-list]");
+const discographyVideoList = document.querySelector("[data-discography-video-list]");
+const videoViewer = document.querySelector("[data-video-viewer]");
+const videoPlayer = document.querySelector("[data-video-player]");
+const videoClose = document.querySelector("[data-video-close]");
+if (new URLSearchParams(location.search).has("video")) {
+  document.documentElement.classList.add("video-entry");
+}
 const audio = document.querySelector("audio");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const RELEASE_TRANSITION_DURATION_MS = 760;
@@ -229,7 +238,7 @@ function setDiscographyOpen(open) {
   if (open) {
     setDrawerOpen(false);
     discographyOverlay.scrollTop = 0;
-    const currentReleaseArtwork = discographyList.querySelector('.discography-release[aria-current="page"] img');
+    const currentReleaseArtwork = discographyAudioList.querySelector('.discography-release[aria-current="page"] img');
     if (currentReleaseArtwork) {
       const trackAngle = tracks.length ? currentTrackIndex * (360 / tracks.length) : 0;
       currentReleaseArtwork.style.setProperty("--discography-angle", `${trackAngle}deg`);
@@ -248,41 +257,55 @@ async function loadDiscography() {
     if (!response.ok) throw new Error(`Discography returned ${response.status}`);
     const releases = await response.json();
     const currentPath = location.pathname.replace(/\/+$/, "") + "/";
-    discographyList.replaceChildren();
-    for (const release of releases) {
-      const link = document.createElement("a");
-      link.className = "discography-release";
-      const destination = new URL(release.url, location.origin);
-      destination.searchParams.set("autoplay", "1");
-      if (new URLSearchParams(location.search).has("test-muted")) destination.searchParams.set("test-muted", "1");
-      link.href = destination.href;
-      if (new URL(link.href).pathname === currentPath) link.setAttribute("aria-current", "page");
-
-      const image = document.createElement("img");
-      image.src = release.artwork;
-      image.alt = "";
-      image.loading = "lazy";
-      image.decoding = "async";
-
-      const name = document.createElement("strong");
-      name.textContent = release.title;
-      link.append(image, name);
-      discographyList.append(link);
-    }
+    renderDiscographyLists({
+      catalog: releases,
+      audioList: discographyAudioList,
+      videoList: discographyVideoList,
+      currentPath,
+      testMuted: new URLSearchParams(location.search).has("test-muted"),
+    });
   } catch (error) {
     console.error(error);
-    discographyList.replaceChildren();
+    discographyAudioList.replaceChildren();
+    discographyVideoList.replaceChildren();
     const message = document.createElement("p");
     message.textContent = "Discography could not be loaded.";
-    discographyList.append(message);
+    discographyAudioList.append(message);
   }
+}
+
+function closeVideoViewer({ restoreHistory = true } = {}) {
+  if (videoViewer.getAttribute("aria-hidden") === "true") return;
+  videoPlayer.pause();
+  videoPlayer.removeAttribute("src");
+  videoPlayer.load();
+  videoViewer.setAttribute("aria-hidden", "true");
+  if (restoreHistory && history.state?.videoViewer) history.back();
+  discographyClose.focus({ preventScroll: true });
+}
+
+function openVideoViewer(source, title) {
+  audio.pause();
+  videoPlayer.src = new URL(source, document.baseURI).href;
+  videoPlayer.setAttribute("aria-label", title || "Video");
+  videoViewer.setAttribute("aria-hidden", "false");
+  history.pushState({ ...history.state, videoViewer: true }, "", `${location.pathname}${location.search}#video`);
+  videoPlayer.play().catch(() => {});
 }
 
 async function prepareDiscographyNavigation(event) {
   const link = event.target.closest(".discography-release");
   if (!link || discographyNavigating) return;
-  const selectedArtwork = link.querySelector("img");
+  const selectedArtwork = link.querySelector("img, video");
   if (!selectedArtwork) return;
+  if (link.classList.contains("discography-video")) {
+    event.preventDefault();
+    player.dataset.videoNavigating = "true";
+    player.dataset.discographyOpen = "false";
+    discographyOverlay.setAttribute("aria-hidden", "true");
+    location.assign(link.href);
+    return;
+  }
   if (link.matches('[aria-current="page"]') && !audio.paused) {
     event.preventDefault();
     setDiscographyOpen(false);
@@ -652,6 +675,10 @@ async function loadRelease() {
 
     await Promise.all([artworkReady, audioReady]);
     setState("ready");
+    const directVideo = player.dataset.videoUrl || currentTrack()?.video || config.video;
+    if (directVideo && new URLSearchParams(location.search).has("video")) {
+      openVideoViewer(directVideo, currentTrack()?.title || config.title);
+    }
     if (new URLSearchParams(location.search).has("autoplay")) {
       const cleanUrl = new URL(location.href);
       cleanUrl.searchParams.delete("autoplay");
@@ -801,7 +828,16 @@ drawerClose.addEventListener("click", () => setDrawerOpen(false));
 drawerPeek.addEventListener("click", () => setDrawerOpen(player.dataset.drawerOpen !== "true"));
 discographyToggle.addEventListener("click", () => setDiscographyOpen(player.dataset.discographyOpen !== "true"));
 discographyClose.addEventListener("click", () => setDiscographyOpen(false));
-discographyList.addEventListener("click", prepareDiscographyNavigation);
+discographyOverlay.addEventListener("click", prepareDiscographyNavigation);
+videoClose.addEventListener("click", () => {
+  if (videoViewer.getAttribute("aria-hidden") !== "true") location.assign("/");
+});
+videoPlayer.addEventListener("click", () => {
+  if (videoPlayer.paused) videoPlayer.play().catch(() => {});
+  else videoPlayer.pause();
+});
+videoPlayer.addEventListener("ended", () => closeVideoViewer());
+window.addEventListener("popstate", () => closeVideoViewer({ restoreHistory: false }));
 player.addEventListener("click", (event) => {
   if (state !== "playing") return;
   if (event.target.closest("button, a, .lyrics-drawer, .discography-overlay, .track-dock")) return;
@@ -809,7 +845,7 @@ player.addEventListener("click", (event) => {
 });
 window.addEventListener("pageshow", () => {
   artwork.style.removeProperty("view-transition-name");
-  for (const image of discographyList.querySelectorAll("img")) image.style.removeProperty("view-transition-name");
+  for (const image of discographyAudioList.querySelectorAll("img")) image.style.removeProperty("view-transition-name");
 });
 for (const tab of drawerTabs) {
   tab.addEventListener("click", () => setActiveDrawerTab(tab.dataset.drawerTab));

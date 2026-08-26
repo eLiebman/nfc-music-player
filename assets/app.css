@@ -106,6 +106,7 @@ button, a { font: inherit; }
   overflow: clip;
   padding-inline: max(1.25rem, env(safe-area-inset-left)) max(1.25rem, env(safe-area-inset-right));
 }
+.player[data-video-navigating="true"] { visibility: hidden; }
 
 .backdrop {
   position: absolute;
@@ -251,7 +252,7 @@ button, a { font: inherit; }
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.discography-overlay h2 {
+.discography-overlay h2:not(.discography-section-heading) {
   margin: 0;
   font-family: var(--display-sans);
   font-size: clamp(2.8rem, 10vw, 6rem);
@@ -260,6 +261,30 @@ button, a { font: inherit; }
   line-height: 0.85;
   text-transform: uppercase;
 }
+.discography-grid.discography-all-list { display: block; width: min(64rem, 100%); margin: 0 auto; }
+.discography-all-list > [data-discography-audio-list] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 42vw), 1fr));
+  gap: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem);
+}
+.discography-all-list > [data-discography-video-list] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 42vw), 1fr));
+  align-items: start;
+  gap: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2.5rem);
+  margin-top: clamp(2.5rem, 8vw, 5rem);
+}
+.discography-section-heading {
+  margin: clamp(2.5rem, 8vw, 5rem) 0 1rem;
+  color: var(--muted);
+  font-family: var(--utility-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.discography-section-heading + [data-discography-video-list] { margin-top: 0; }
+.discography-all-list > [hidden] { display: none; }
 .discography-overlay header button {
   position: fixed;
   z-index: 3;
@@ -310,6 +335,8 @@ button, a { font: inherit; }
   box-shadow: 0 1.1rem 2.7rem rgba(0, 0, 0, 0.42);
   transition: border-color 220ms ease, box-shadow 260ms var(--ease), filter 220ms ease;
 }
+.discography-video { position: relative; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.discography-video-thumbnail { display: block; width: 100%; max-width: 15rem; aspect-ratio: 9 / 16; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,.13); border-radius: 0.45rem; object-fit: cover; box-shadow: 0 1.1rem 2.7rem rgba(0,0,0,.42); animation: none !important; }
 @keyframes discography-current-spin {
   from { rotate: var(--discography-angle, 0deg); }
   to { rotate: calc(var(--discography-angle, 0deg) + 360deg); }
@@ -352,6 +379,40 @@ button, a { font: inherit; }
   pointer-events: none;
   transform-origin: top left;
   will-change: transform;
+}
+.video-viewer {
+  position: fixed;
+  z-index: 1001;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+.video-entry .player-shell { visibility: hidden; }
+.video-entry .video-viewer { visibility: visible; }
+.video-viewer[aria-hidden="false"] { opacity: 1; pointer-events: auto; }
+.video-viewer video { width: 100%; height: 100%; object-fit: contain; cursor: pointer; }
+.video-viewer-close {
+  position: absolute;
+  z-index: 1;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  width: 3rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  color: var(--ink);
+  background: rgba(0,0,0,.45);
+  font-size: 2rem;
+  font-family: Arial, sans-serif;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .release-meta {
@@ -648,7 +709,7 @@ button, a { font: inherit; }
   left: 50%;
   width: min(42rem, 100%);
   height: var(--drawer-height);
-  padding: 0 1.35rem calc(7rem + env(safe-area-inset-bottom));
+  padding: 0 1.35rem calc(3rem + env(safe-area-inset-bottom));
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-bottom: 0;
@@ -727,17 +788,24 @@ button, a { font: inherit; }
   touch-action: pan-y;
 }
 .drawer-panel {
+  max-width: 38rem;
+  margin-inline: auto;
   padding: 2rem 0 3rem;
-  color: rgba(255, 250, 242, 0.88);
-  font-size: clamp(1.05rem, 4vw, 1.35rem);
-  line-height: 1.7;
+  color: color-mix(in srgb, var(--ink) 78%, var(--accent));
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: clamp(1.08rem, 3.8vw, 1.3rem);
+  letter-spacing: 0.005em;
+  line-height: 1.62;
+  text-wrap: pretty;
   will-change: transform, opacity;
 }
 .lyrics {
   white-space: pre-line;
 }
-.about { white-space: pre-wrap; }
-.credits { white-space: pre-wrap; }
+.about, .credits {
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
 .about a, .credits a { color: inherit; text-underline-offset: 0.18em; }
 
 .edition, .status {

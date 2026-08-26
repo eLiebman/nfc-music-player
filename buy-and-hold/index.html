@@ -19,10 +19,10 @@
     <meta name="twitter:description" content="Elliot.wavs feat. STONK!">
     <meta name="twitter:image" content="https://media.elliotwavs.com/releases/buy-and-hold/artwork-fff5ff231e56.jpg">
     <link rel="canonical" href="https://play.elliotwavs.com/buy-and-hold/">
-    <link rel="stylesheet" href="../assets/app.css?v=47">
+    <link rel="stylesheet" href="../assets/app.css?v=69">
   </head>
   <body data-config="../releases/buy-and-hold/config.json" data-discography="../discography.json">
-    <main class="player" data-player data-state="loading">
+    <main class="player" data-player data-state="loading" data-video-url="https://media.elliotwavs.com/releases/buy-and-hold/video-40cf54f960ff.mp4">
       <div class="backdrop" aria-hidden="true"></div>
       <button class="discography-toggle" type="button" data-discography-toggle aria-label="Open discography" aria-controls="discography" aria-expanded="false">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 8 6h16l3 5v14H5Z"/><path d="M8 10h16M9 8h14M8 14h16M8 17h16M8 20h16"/></svg>
@@ -89,11 +89,20 @@
             <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m8 8 16 16M24 8 8 24"/></svg>
           </button>
         </header>
-        <div class="discography-grid" data-discography-list><p>Loading releases…</p></div>
+        <div class="discography-grid discography-all-list">
+          <h2 class="discography-section-heading">Music</h2>
+          <div data-discography-audio-list><p>Loading releases…</p></div>
+          <h2 class="discography-section-heading" data-discography-video-heading hidden>Video</h2>
+          <div data-discography-video-list><p>Loading videos…</p></div>
+        </div>
+      </section>
+      <section class="video-viewer" data-video-viewer aria-hidden="true">
+        <button type="button" class="video-viewer-close" data-video-close aria-label="Close video">×</button>
+        <video data-video-player playsinline></video>
       </section>
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=61"></script>
+    <script type="module" src="../assets/player.js?v=83"></script>
   </body>
 </html>
