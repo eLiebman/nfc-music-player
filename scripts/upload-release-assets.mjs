@@ -19,6 +19,8 @@ function parseArgs(argv) {
     const value = next && !next.startsWith("--") ? argv[++index] : true;
     if (name === "audio") {
       parsed.audio = [...(parsed.audio || []), value];
+    } else if (name === "video") {
+      parsed.video = [...(parsed.video || []), value];
     } else {
       parsed[name] = value;
     }
@@ -31,11 +33,12 @@ const args = parseArgs(process.argv.slice(2));
 const slug = String(args.slug || "");
 const audioPaths = (args.audio || []).map((value) => path.resolve(String(value)));
 const artworkPath = args.artwork ? path.resolve(String(args.artwork)) : null;
+const videoPaths = (args.video || []).map((value) => path.resolve(String(value)));
 const dryRun = args["dry-run"] === true;
 
 if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error("--slug must be lowercase kebab-case");
-if (!audioPaths.length && !artworkPath) throw new Error("Provide at least one --audio or --artwork file");
-await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), ...(artworkPath ? [access(artworkPath)] : [])]);
+if (!audioPaths.length && !artworkPath && !videoPaths.length) throw new Error("Provide at least one --audio, --artwork, or --video file");
+await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), ...(artworkPath ? [access(artworkPath)] : []), ...videoPaths.map((videoPath) => access(videoPath))]);
 
 const preparedAudioPaths = await Promise.all(audioPaths.map(async (audioPath, index) => {
   if (path.extname(audioPath).toLowerCase() !== ".wav") {
@@ -70,6 +73,7 @@ function contentType(filePath, kind) {
   const types = {
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp",
     ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4", ".aac": "audio/aac", ".flac": "audio/flac",
+    ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
   };
   if (!types[extension]) throw new Error(`Unsupported ${kind} extension: ${extension || "none"}`);
   return types[extension];
@@ -101,6 +105,7 @@ const [audios, artwork] = await Promise.all([
   Promise.all(preparedAudioPaths.map((audioPath) => asset(audioPath, "audio"))),
   artworkPath ? asset(artworkPath, "artwork") : null,
 ]);
+const videos = await Promise.all(videoPaths.map((videoPath) => asset(videoPath, "video")));
 
 if (!dryRun) {
   console.error("Checking AWS credentials...");
@@ -126,8 +131,8 @@ if (!dryRun) {
   }
   console.error("S3 bucket verified.");
 
-  for (const item of [...audios, ...(artwork ? [artwork] : [])]) {
-    const kind = item === artwork ? "artwork" : "audio";
+  for (const item of [...audios, ...(artwork ? [artwork] : []), ...videos]) {
+    const kind = item === artwork ? "artwork" : videos.includes(item) ? "video" : "audio";
     console.error(`Uploading ${kind}: ${path.basename(item.filePath)}`);
     runAws([
       "s3", "cp", item.filePath, `s3://${target.bucket}/${item.key}`,
@@ -149,6 +154,7 @@ const resultPayload = {
   dryRun,
   ...(audios.length === 1 ? { audio: audios[0] } : audios.length ? { audios } : {}),
   ...(artwork ? { artwork } : {}),
+  ...(videos.length === 1 ? { video: videos[0] } : videos.length ? { videos } : {}),
 };
 const result = `${JSON.stringify(resultPayload, null, 2)}\n`;
 if (args["result-file"] && args["result-file"] !== true) {

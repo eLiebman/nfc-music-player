@@ -34,6 +34,11 @@ const lyrics = document.querySelector("[data-lyrics]");
 const about = document.querySelector("[data-about]");
 const credits = document.querySelector("[data-credits]");
 const drawerContent = document.querySelector("[data-drawer-content]");
+const videoDrawer = document.querySelector("[data-video-drawer]");
+const video = document.querySelector("[data-video]");
+const videoStatus = document.querySelector("[data-video-status]");
+const videoPeek = document.querySelector("[data-video-peek]");
+const videoShell = document.querySelector("[data-video-shell]");
 const drawerTabs = [...document.querySelectorAll("[data-drawer-tab]")];
 const drawerPanels = [...document.querySelectorAll("[data-drawer-panel]")];
 const discographyToggle = document.querySelector("[data-discography-toggle]");
@@ -76,10 +81,20 @@ let endLanding = null;
 let switchingTrack = false;
 let drawerVerticalGesture = null;
 let suppressDrawerToggleClick = false;
+let suppressDrawerTabClick = false;
 let activeDrawerTab = "lyrics";
 let contentSwipeStart = null;
 let discographyNavigating = false;
 let controlsRevealTimer = null;
+let videoEdgeGesture = null;
+let videoPointerGesture = null;
+let videoSwipeGesture = null;
+let videoPointerSwipeGesture = null;
+let videoSyncTimer = null;
+let audioWasPlayingBeforeVideo = false;
+let suppressVideoClick = false;
+let suppressVideoPeekClick = false;
+let videoEnteredFullscreen = false;
 
 function resolveAsset(path) {
   return new URL(path, configBaseUrl).href;
@@ -108,7 +123,7 @@ function normalizeTracks(release) {
       if (!track?.title || !track?.audio) {
         throw new Error(`Track ${index + 1} requires title and audio`);
       }
-      return { ...track, artist: track.artist || release.artist };
+      return { ...track, artist: track.artist || release.artist, video: track.video || (index === 0 ? release.video : "") };
     });
   }
   if (!release.audio) throw new Error("Release requires audio or a non-empty tracks array");
@@ -118,6 +133,7 @@ function normalizeTracks(release) {
     audio: release.audio,
     lyrics: release.lyrics || "",
     about: release.about || "",
+    video: release.video || "",
   }];
 }
 
@@ -218,6 +234,133 @@ function setDrawerOpen(open) {
   drawerPeek.setAttribute("aria-expanded", String(open));
   drawerPeek.setAttribute("aria-label", open ? "Close track information" : "Open track information");
   if (open) lyricsDrawer.scrollTop = 0;
+}
+
+function syncVideoToAudio() {
+  if (!video || !Number.isFinite(audio.currentTime)) return;
+  const duration = Number.isFinite(video.duration) ? video.duration : Infinity;
+  try { video.currentTime = Math.min(Math.max(0, audio.currentTime), duration); } catch {}
+}
+
+function updateVideoFit() {
+  if (!videoShell || !video.videoWidth || !video.videoHeight) return;
+  videoShell.dataset.videoOrientation = video.videoWidth < video.videoHeight ? "portrait" : "landscape";
+}
+
+async function requestVideoFullscreenOnce() {
+  if (!firstPlayAttempt) return;
+  firstPlayAttempt = false;
+  if (document.fullscreenElement || !videoDrawer?.requestFullscreen) return;
+  try {
+    await videoDrawer.requestFullscreen({ navigationUI: "hide" });
+    videoEnteredFullscreen = true;
+  } catch {}
+}
+
+async function setVideoOpen(open, { startIfIdle = false } = {}) {
+  const videoPath = currentTrack()?.video;
+  if (!videoPath || !videoDrawer || !video) return;
+  if (open) {
+    suppressVideoClick = false;
+    audioWasPlayingBeforeVideo = !audio.paused && !audio.ended;
+    setDrawerOpen(false);
+    if (video.src !== resolveAsset(videoPath)) {
+      video.src = resolveAsset(videoPath);
+      video.load();
+    }
+    videoDrawer.setAttribute("aria-hidden", "false");
+    // Paint the drawer off-screen first so opening has a visible slide-in frame.
+    void videoDrawer.offsetWidth;
+    player.dataset.videoOpen = "true";
+    videoPeek?.setAttribute("aria-expanded", "true");
+    video.muted = true;
+    video.setAttribute("muted", "");
+    video.addEventListener("loadedmetadata", syncVideoToAudio, { once: true });
+    video.addEventListener("loadedmetadata", updateVideoFit, { once: true });
+    updateVideoFit();
+    syncVideoToAudio();
+    const shouldStart = (!audio.paused && !audio.ended) || (startIfIdle && !hasStartedPlayback);
+    const fullscreen = shouldStart ? requestVideoFullscreenOnce() : Promise.resolve();
+    const playback = shouldStart ? video.play() : Promise.resolve();
+    if (shouldStart && audio.paused && !hasStartedPlayback) resumeAudioForVideo();
+    videoSyncTimer = window.setInterval(() => {
+      if (player.dataset.videoOpen !== "true" || video.paused || audio.paused) return;
+      if (Math.abs(video.currentTime - audio.currentTime) > 0.08) syncVideoToAudio();
+    }, 250);
+    try { await fullscreen; } catch {}
+    try { await playback; } catch {}
+  } else {
+    if (videoSyncTimer) {
+      clearInterval(videoSyncTimer);
+      videoSyncTimer = null;
+    }
+    video.pause();
+    player.dataset.videoOpen = "false";
+    videoPeek?.setAttribute("aria-expanded", "false");
+    await Promise.all(videoDrawer.getAnimations().map((animation) => animation.finished.catch(() => {})));
+    videoDrawer.setAttribute("aria-hidden", "true");
+    if (videoEnteredFullscreen && document.fullscreenElement === videoDrawer) {
+      try { await document.exitFullscreen(); } catch {}
+      videoEnteredFullscreen = false;
+    }
+    audioWasPlayingBeforeVideo = false;
+  }
+}
+
+function toggleVideoPlayback() {
+  video.muted = true;
+  if (video.paused) {
+    requestVideoFullscreenOnce();
+    video.play().catch(() => {});
+    if (audio.paused) resumeAudioForVideo();
+  } else {
+    video.pause();
+    if (!audio.paused) audio.pause();
+  }
+}
+
+async function resumeAudioForVideo() {
+  endLanding = null;
+  pendingMotorPause = false;
+  motorTransition = null;
+  motorRunning = true;
+  visualSpeed = 1 / SECONDS_PER_TURN;
+  audio.playbackRate = 1;
+  audio.volume = 1;
+  try {
+    await audio.play();
+    setState("playing");
+  } catch {
+    setState("paused", "Playback was blocked. Tap once more to retry.");
+  }
+}
+
+function handleVideoClick(event) {
+  if (suppressVideoClick) {
+    suppressVideoClick = false;
+    return;
+  }
+  event?.stopPropagation();
+  toggleVideoPlayback();
+}
+
+function pauseVideoWithDisc() {
+  if (player.dataset.videoOpen === "true" && video && !video.paused) video.pause();
+}
+
+function updateVideoSource() {
+  const videoPath = currentTrack()?.video;
+  player.dataset.hasVideo = String(Boolean(videoPath));
+  if (!video) return;
+  video.pause();
+  video.muted = true;
+  if (videoPath) {
+    video.src = resolveAsset(videoPath);
+    video.load();
+  } else {
+    video.removeAttribute("src");
+    video.load();
+  }
 }
 
 function setDiscographyOpen(open) {
@@ -631,6 +774,7 @@ async function loadRelease() {
     edition.textContent = config.edition || "";
     edition.hidden = !config.edition;
     updateTrackUi();
+    updateVideoSource();
 
     const artworkUrl = resolveAsset(config.displayArtwork || config.artwork);
     artwork.alt = `${config.title} artwork`;
@@ -682,8 +826,10 @@ async function switchTrack(index, { autoplay = !audio.paused } = {}) {
   motorTransition = null;
   setState("loading");
   audio.pause();
+  if (player.dataset.videoOpen === "true") await setVideoOpen(false);
   currentTrackIndex = index;
   updateTrackUi();
+  updateVideoSource();
 
   try {
     await setAudioSource(resolveAsset(currentTrack().audio));
@@ -780,7 +926,10 @@ async function play({ requestFullscreen = true } = {}) {
 
 button.addEventListener("click", () => {
   if (!config || state === "loading") return;
-  if (state === "playing" && motorRunning) beginMotorStop();
+  if (state === "playing" && motorRunning) {
+    pauseVideoWithDisc();
+    beginMotorStop();
+  }
   else play();
 });
 
@@ -798,13 +947,73 @@ drawerToggle.addEventListener("click", () => {
   setDrawerOpen(player.dataset.drawerOpen !== "true");
 });
 drawerClose.addEventListener("click", () => setDrawerOpen(false));
-drawerPeek.addEventListener("click", () => setDrawerOpen(player.dataset.drawerOpen !== "true"));
+drawerPeek.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || event.pointerType === "touch") return;
+  if (player.dataset.discographyOpen === "true") return;
+  const direction = player.dataset.drawerOpen === "true" ? "close" : "open";
+  beginDrawerVerticalGesture(event.clientX, event.clientY, direction);
+  drawerPeek.setPointerCapture?.(event.pointerId);
+});
+drawerPeek.addEventListener("pointermove", (event) => {
+  if (updateDrawerVerticalDrag(event.clientX, event.clientY)) event.preventDefault();
+}, { passive: false });
+drawerPeek.addEventListener("pointerup", (event) => {
+  if (!event.isPrimary || drawerVerticalGesture?.active) return;
+  suppressDrawerToggleClick = true;
+  setDrawerOpen(player.dataset.drawerOpen !== "true");
+});
+drawerPeek.addEventListener("click", () => {
+  if (suppressDrawerToggleClick) {
+    suppressDrawerToggleClick = false;
+    return;
+  }
+  setDrawerOpen(player.dataset.drawerOpen !== "true");
+});
 discographyToggle.addEventListener("click", () => setDiscographyOpen(player.dataset.discographyOpen !== "true"));
 discographyClose.addEventListener("click", () => setDiscographyOpen(false));
 discographyList.addEventListener("click", prepareDiscographyNavigation);
+videoPeek?.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "touch") return;
+  if (player.dataset.drawerOpen === "true" || player.dataset.discographyOpen === "true" || player.dataset.videoOpen === "true") return;
+  videoPointerGesture = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  videoPeek.setPointerCapture?.(event.pointerId);
+});
+videoPeek?.addEventListener("pointermove", (event) => {
+  const gesture = videoPointerGesture;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX > 8 && deltaX > Math.abs(deltaY)) {
+    if (!videoEdgeGesture) beginVideoDrag(gesture.x, gesture.y);
+    videoEdgeGesture.active = true;
+    updateVideoDrag(deltaX);
+    event.preventDefault();
+  }
+}, { passive: false });
+videoPeek?.addEventListener("pointerup", (event) => {
+  if (videoEdgeGesture?.active) {
+    suppressVideoPeekClick = true;
+    finishVideoDrag(event.clientX, event.clientY);
+    videoPointerGesture = null;
+    return;
+  }
+  suppressVideoPeekClick = true;
+  setVideoOpen(player.dataset.videoOpen !== "true", { startIfIdle: true });
+});
+videoPeek?.addEventListener("click", () => {
+  if (suppressVideoPeekClick) {
+    suppressVideoPeekClick = false;
+    return;
+  }
+  setVideoOpen(player.dataset.videoOpen !== "true", { startIfIdle: true });
+});
+videoDrawer?.addEventListener("click", handleVideoClick);
+video?.addEventListener("loadedmetadata", updateVideoFit);
+video?.addEventListener("play", () => {});
+video?.addEventListener("pause", () => {});
 player.addEventListener("click", (event) => {
   if (state !== "playing") return;
-  if (event.target.closest("button, a, .lyrics-drawer, .discography-overlay, .track-dock")) return;
+  if (event.target.closest("button, a, .lyrics-drawer, .video-drawer, .discography-overlay, .track-dock")) return;
   setControlsVisible(player.dataset.controlsVisible !== "true");
 });
 window.addEventListener("pageshow", () => {
@@ -812,13 +1021,32 @@ window.addEventListener("pageshow", () => {
   for (const image of discographyList.querySelectorAll("img")) image.style.removeProperty("view-transition-name");
 });
 for (const tab of drawerTabs) {
-  tab.addEventListener("click", () => setActiveDrawerTab(tab.dataset.drawerTab));
+  tab.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+    if (event.pointerType !== "touch") setActiveDrawerTab(tab.dataset.drawerTab);
+  });
+  tab.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "touch") return;
+    event.stopPropagation();
+    suppressDrawerTabClick = true;
+    setActiveDrawerTab(tab.dataset.drawerTab);
+  });
+  tab.addEventListener("click", () => {
+    if (suppressDrawerTabClick) {
+      suppressDrawerTabClick = false;
+      return;
+    }
+    setActiveDrawerTab(tab.dataset.drawerTab);
+  });
 }
 
 async function finishContentSwipe(endX, endY) {
   const swipe = contentSwipeStart;
   if (!swipe) return;
   contentSwipeStart = null;
+  if (drawerContent.hasPointerCapture?.(swipe.pointerId)) {
+    try { drawerContent.releasePointerCapture(swipe.pointerId); } catch {}
+  }
   const deltaX = endX - swipe.x;
   const deltaY = endY - swipe.y;
   const available = availableDrawerTabs();
@@ -886,7 +1114,42 @@ drawerContent.addEventListener("pointerup", (event) => finishContentSwipe(event.
 drawerContent.addEventListener("pointercancel", (event) => finishContentSwipe(event.clientX, event.clientY));
 
 function beginDrawerVerticalGesture(x, y, direction) {
-  drawerVerticalGesture = { x, y, direction };
+  const wasOpen = player.dataset.drawerOpen === "true";
+  const currentTransform = drawerPeek.style.transform;
+  const currentTransition = drawerPeek.style.transition;
+  player.dataset.drawerOpen = "false";
+  drawerPeek.style.removeProperty("transform");
+  const matrixValues = getComputedStyle(drawerPeek).transform.match(/^matrix\(([^)]+)\)$/)?.[1]
+    .split(",")
+    .map(Number);
+  const closedPeekOffset = Number.isFinite(matrixValues?.[5]) ? matrixValues[5] : 0;
+  const closedDrawerY = lyricsDrawer.getBoundingClientRect().top;
+  const closedPeekY = drawerPeek.getBoundingClientRect().top;
+  player.dataset.drawerOpen = "true";
+  const openDrawerY = lyricsDrawer.getBoundingClientRect().top;
+  const openPeekY = drawerPeek.getBoundingClientRect().top;
+  if (!wasOpen) player.dataset.drawerOpen = "false";
+  if (currentTransform) drawerPeek.style.transform = currentTransform;
+  if (currentTransition) drawerPeek.style.transition = currentTransition;
+  drawerPeek.style.removeProperty("top");
+  drawerPeek.style.removeProperty("bottom");
+  drawerPeek.style.removeProperty("transform");
+  const drawerBaseY = wasOpen ? openDrawerY : closedDrawerY;
+  const peekBaseY = wasOpen ? openPeekY : closedPeekY;
+  drawerVerticalGesture = {
+    x,
+    y,
+    direction,
+    closedPeekOffset,
+    peekBaseY,
+    closedDrawerY,
+    openDrawerY,
+    closedPeekGap: closedPeekY - closedDrawerY,
+    openPeekGap: openPeekY - openDrawerY,
+    closedPeekY,
+    peekHeight: drawerPeek.offsetHeight,
+    dragPeekGap: -(drawerPeek.offsetHeight / 2),
+  };
 }
 
 function finishDrawerVerticalGesture(x, y) {
@@ -895,43 +1158,230 @@ function finishDrawerVerticalGesture(x, y) {
   if (!gesture) return;
   const deltaX = x - gesture.x;
   const deltaY = y - gesture.y;
-  if (Math.abs(deltaY) <= 42 || Math.abs(deltaY) <= Math.abs(deltaX) * 1.15) return;
-  if (gesture.direction === "open" && deltaY < 0) {
-    suppressDrawerToggleClick = true;
-    setDrawerOpen(true);
-  } else if (gesture.direction === "close" && deltaY > 0) {
-    setDrawerOpen(false);
+  if (gesture.active) {
+    const vertical = Math.abs(deltaY) > Math.abs(deltaX) * 1.15;
+    const shouldOpen = gesture.direction === "open"
+      ? deltaY < -60 && vertical
+      : !(deltaY > 60 && vertical);
+    const peekRect = drawerPeek.getBoundingClientRect();
+    const peekCenterY = peekRect.top + peekRect.height / 2;
+    drawerPeek.style.transition = "none";
+    lyricsDrawer.style.removeProperty("transition");
+    lyricsDrawer.style.removeProperty("transform");
+    setDrawerOpen(shouldOpen);
+    drawerPeek.style.removeProperty("top");
+    drawerPeek.style.removeProperty("bottom");
+    drawerPeek.style.removeProperty("transform");
+    const finalPeekRect = drawerPeek.getBoundingClientRect();
+    drawerPeek.style.transform = `translateY(${peekCenterY - (finalPeekRect.top + finalPeekRect.height / 2)}px)`;
+    void drawerPeek.offsetWidth;
+    drawerPeek.style.removeProperty("transition");
+    drawerPeek.style.removeProperty("transform");
+    if (shouldOpen !== (gesture.direction === "close")) suppressDrawerToggleClick = true;
+    return;
   }
+  if (Math.abs(deltaY) <= 42 || Math.abs(deltaY) <= Math.abs(deltaX) * 1.15) return;
+  if (gesture.direction === "open" && deltaY < 0) setDrawerOpen(true);
+  else if (gesture.direction === "close" && deltaY > 0) setDrawerOpen(false);
+}
+
+function updateDrawerVerticalDrag(x, y) {
+  const gesture = drawerVerticalGesture;
+  if (!gesture) return false;
+  const deltaX = x - gesture.x;
+  const deltaY = y - gesture.y;
+  if (Math.abs(deltaY) <= 8 || Math.abs(deltaY) <= Math.abs(deltaX) * 1.15) return false;
+  const height = lyricsDrawer.clientHeight || innerHeight;
+  const closedY = height * 1.02;
+  const offset = gesture.direction === "open"
+    ? Math.max(0, Math.min(closedY, closedY + deltaY))
+    : Math.max(0, Math.min(closedY, deltaY));
+  gesture.active = true;
+  lyricsDrawer.style.transition = "none";
+  lyricsDrawer.style.transform = `translateY(${offset}px)`;
+  drawerPeek.style.transition = "none";
+  const drawerY = lyricsDrawer.getBoundingClientRect().top;
+  if (gesture.direction === "open" && drawerY > gesture.closedPeekY + gesture.peekHeight) {
+    drawerPeek.style.removeProperty("top");
+    drawerPeek.style.removeProperty("bottom");
+    drawerPeek.style.removeProperty("transform");
+    return true;
+  }
+  drawerPeek.style.top = `${drawerY + gesture.dragPeekGap}px`;
+  drawerPeek.style.bottom = "auto";
+  drawerPeek.style.transform = "translateY(-50%)";
+  lyricsDrawer.setAttribute("aria-hidden", "false");
+  return true;
+}
+
+function updateVideoDrag(deltaX) {
+  if (!videoDrawer) return;
+  const width = videoDrawer.clientWidth || innerWidth;
+  const closedX = -width * 1.04;
+  const x = Math.max(closedX, Math.min(0, closedX + deltaX));
+  videoDrawer.style.transition = "none";
+  videoDrawer.style.transform = `translateX(${x}px) scale(${0.94 + 0.06 * (1 - Math.abs(x / closedX))})`;
+}
+
+function beginVideoDrag(x, y) {
+  videoDrawer?.setAttribute("aria-hidden", "false");
+  videoEdgeGesture = { x, y, active: false };
+}
+
+function finishVideoDrag(x, y) {
+  const gesture = videoEdgeGesture;
+  videoEdgeGesture = null;
+  if (!gesture || !gesture.active) return false;
+  suppressVideoClick = true;
+  const deltaX = x - gesture.x;
+  const deltaY = y - gesture.y;
+  const shouldOpen = deltaX > 60
+    && Math.abs(deltaX) > Math.abs(deltaY) * 1.15;
+  videoDrawer.style.removeProperty("transition");
+  videoDrawer.style.removeProperty("transform");
+  setVideoOpen(shouldOpen, { startIfIdle: shouldOpen });
+  return true;
+}
+
+function updateVideoCloseDrag(deltaX) {
+  if (!videoDrawer) return;
+  const x = Math.min(0, Math.max(-videoDrawer.clientWidth, deltaX));
+  videoDrawer.style.transition = "none";
+  videoDrawer.style.transform = `translateX(${x}px) scale(${1 - Math.abs(x) / Math.max(1, videoDrawer.clientWidth) * 0.06})`;
+}
+
+function finishVideoCloseDrag(x, y) {
+  const gesture = videoSwipeGesture;
+  videoSwipeGesture = null;
+  if (!gesture || !gesture.active) return false;
+  const deltaX = x - gesture.x;
+  const deltaY = y - gesture.y;
+  const shouldClose = deltaX < -60
+    && Math.abs(deltaX) > Math.abs(deltaY) * 1.15;
+  videoDrawer.style.removeProperty("transition");
+  videoDrawer.style.removeProperty("transform");
+  setVideoOpen(!shouldClose);
+  return true;
 }
 
 player.addEventListener("pointerdown", (event) => {
-  if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen === "true") return;
+  if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen === "true" || player.dataset.videoOpen === "true") return;
   if (player.dataset.discographyOpen === "true" || event.target.closest(".track-controls, .discography-toggle")) return;
-  if (event.clientY >= innerHeight * 0.55) beginDrawerVerticalGesture(event.clientX, event.clientY, "open");
+  if (event.clientY >= innerHeight * 0.55 && !event.target.closest(".drawer-peek")) {
+    beginDrawerVerticalGesture(event.clientX, event.clientY, "open");
+    player.setPointerCapture?.(event.pointerId);
+  }
 });
 player.addEventListener("pointerup", (event) => {
   if (event.pointerType !== "touch") finishDrawerVerticalGesture(event.clientX, event.clientY);
 });
 
 player.addEventListener("touchstart", (event) => {
-  if (player.dataset.drawerOpen === "true" || player.dataset.discographyOpen === "true") return;
+  if (player.dataset.drawerOpen === "true" || player.dataset.discographyOpen === "true" || player.dataset.videoOpen === "true") return;
   if (event.target.closest(".track-controls, .discography-toggle")) return;
   const touch = event.touches[0];
+  if (touch && player.dataset.hasVideo === "true" && touch.clientX <= 32) {
+    beginVideoDrag(touch.clientX, touch.clientY);
+    return;
+  }
   if (touch && touch.clientY >= innerHeight * 0.55) beginDrawerVerticalGesture(touch.clientX, touch.clientY, "open");
 }, { passive: true });
+player.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || event.pointerType === "touch") return;
+  if (player.dataset.drawerOpen === "true" || player.dataset.discographyOpen === "true" || player.dataset.videoOpen === "true") return;
+  if (event.target.closest(".track-controls, .discography-toggle, .video-peek") || player.dataset.hasVideo !== "true" || event.clientX > 40) return;
+  videoPointerGesture = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  player.setPointerCapture?.(event.pointerId);
+});
+player.addEventListener("pointerup", (event) => {
+  if (videoEdgeGesture?.active) {
+    finishVideoDrag(event.clientX, event.clientY);
+    videoPointerGesture = null;
+    return;
+  }
+  const gesture = videoPointerGesture;
+  videoPointerGesture = null;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+    videoDrawer.style.removeProperty("transition");
+    videoDrawer.style.removeProperty("transform");
+    setVideoOpen(true, { startIfIdle: true });
+  }
+});
+player.addEventListener("pointercancel", (event) => {
+  if (videoPointerGesture?.pointerId === event.pointerId) videoPointerGesture = null;
+});
+player.addEventListener("touchmove", (event) => {
+  if (drawerVerticalGesture && updateDrawerVerticalDrag(event.touches[0]?.clientX, event.touches[0]?.clientY)) {
+    event.preventDefault();
+    return;
+  }
+  if (!videoEdgeGesture) return;
+  const touch = event.touches[0];
+  if (!touch) return;
+  const deltaX = touch.clientX - videoEdgeGesture.x;
+  const deltaY = touch.clientY - videoEdgeGesture.y;
+  if (deltaX > 8 && deltaX > Math.abs(deltaY)) {
+    videoEdgeGesture.active = true;
+    updateVideoDrag(deltaX);
+    event.preventDefault();
+  }
+}, { passive: false });
 player.addEventListener("touchend", (event) => {
-  if (player.dataset.drawerOpen === "true" || drawerVerticalGesture?.direction !== "open") return;
   const touch = event.changedTouches[0];
+  if (videoEdgeGesture) {
+    if (touch && finishVideoDrag(touch.clientX, touch.clientY)) return;
+    videoDrawer?.setAttribute("aria-hidden", "true");
+    return;
+  }
+  if (player.dataset.drawerOpen === "true" || drawerVerticalGesture?.direction !== "open") return;
   if (touch) finishDrawerVerticalGesture(touch.clientX, touch.clientY);
 }, { passive: true });
+window.addEventListener("pointermove", (event) => {
+  if (drawerVerticalGesture && updateDrawerVerticalDrag(event.clientX, event.clientY)) {
+    event.preventDefault();
+    return;
+  }
+  const gesture = videoPointerGesture;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX > 8 && deltaX > Math.abs(deltaY)) {
+    if (!videoEdgeGesture) beginVideoDrag(gesture.x, gesture.y);
+    videoEdgeGesture.active = true;
+    updateVideoDrag(deltaX);
+    event.preventDefault();
+  }
+}, { passive: false });
+window.addEventListener("pointermove", (event) => {
+  if (drawerVerticalGesture && updateDrawerVerticalDrag(event.clientX, event.clientY)) {
+    event.preventDefault();
+  }
+  const gesture = videoPointerGesture;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX > 8 && deltaX > Math.abs(deltaY)) {
+    if (!videoEdgeGesture) beginVideoDrag(gesture.x, gesture.y);
+    videoEdgeGesture.active = true;
+    updateVideoDrag(deltaX);
+    event.preventDefault();
+  }
+}, { capture: true, passive: false });
 
 lyricsDrawer.addEventListener("pointerdown", (event) => {
   if (!event.isPrimary || event.pointerType === "touch" || player.dataset.drawerOpen !== "true") return;
   const startsInScrollableContent = Boolean(event.target.closest("[data-drawer-content]"));
-  if (!startsInScrollableContent || drawerContent.scrollTop <= 0) {
-    beginDrawerVerticalGesture(event.clientX, event.clientY, "close");
-  }
+  const startsInDrawerTab = Boolean(event.target.closest("[data-drawer-tab]"));
+  if (startsInScrollableContent || startsInDrawerTab) return;
+  beginDrawerVerticalGesture(event.clientX, event.clientY, "close");
+  lyricsDrawer.setPointerCapture?.(event.pointerId);
 });
+lyricsDrawer.addEventListener("pointermove", (event) => {
+  if (updateDrawerVerticalDrag(event.clientX, event.clientY)) event.preventDefault();
+}, { passive: false });
 lyricsDrawer.addEventListener("pointerup", (event) => {
   if (event.pointerType !== "touch" && drawerVerticalGesture?.direction === "close") {
     finishDrawerVerticalGesture(event.clientX, event.clientY);
@@ -961,7 +1411,65 @@ lyricsDrawer.addEventListener("touchend", (event) => {
   if (touch) finishDrawerVerticalGesture(touch.clientX, touch.clientY);
 }, { passive: true });
 lyricsDrawer.addEventListener("touchcancel", () => { drawerVerticalGesture = null; }, { passive: true });
+videoDrawer?.addEventListener("touchstart", (event) => {
+  const touch = event.touches[0];
+  if (touch) videoSwipeGesture = { x: touch.clientX, y: touch.clientY, active: false };
+}, { passive: true });
+videoDrawer?.addEventListener("touchmove", (event) => {
+  const gesture = videoSwipeGesture;
+  const touch = event.touches[0];
+  if (!gesture || !touch) return;
+  const deltaX = touch.clientX - gesture.x;
+  const deltaY = touch.clientY - gesture.y;
+  if (deltaX < -8 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    gesture.active = true;
+    updateVideoCloseDrag(deltaX);
+    event.preventDefault();
+  }
+}, { passive: false });
+videoDrawer?.addEventListener("touchend", (event) => {
+  const touch = event.changedTouches[0];
+  if (touch && finishVideoCloseDrag(touch.clientX, touch.clientY)) event.preventDefault();
+}, { passive: false });
+videoDrawer?.addEventListener("touchcancel", () => { videoSwipeGesture = null; }, { passive: true });
+videoDrawer?.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || event.pointerType === "touch") return;
+  videoPointerSwipeGesture = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, active: false };
+  videoDrawer.setPointerCapture?.(event.pointerId);
+});
+videoDrawer?.addEventListener("pointermove", (event) => {
+  const gesture = videoPointerSwipeGesture;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX < -8 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    gesture.active = true;
+    updateVideoCloseDrag(deltaX);
+    event.preventDefault();
+  }
+});
+videoDrawer?.addEventListener("pointerup", (event) => {
+  const gesture = videoPointerSwipeGesture;
+  videoPointerSwipeGesture = null;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
+  if (gesture.active) {
+    suppressVideoClick = true;
+    videoSwipeGesture = gesture;
+    finishVideoCloseDrag(event.clientX, event.clientY);
+    return;
+  }
+  const deltaX = event.clientX - gesture.x;
+  const deltaY = event.clientY - gesture.y;
+  if (deltaX < -60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) setVideoOpen(false);
+});
+videoDrawer?.addEventListener("pointercancel", (event) => {
+  if (videoPointerSwipeGesture?.pointerId === event.pointerId) videoPointerSwipeGesture = null;
+});
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && player.dataset.videoOpen === "true") {
+    setVideoOpen(false);
+    return;
+  }
   if (event.key === "Escape" && player.dataset.discographyOpen === "true") {
     setDiscographyOpen(false);
     return;
@@ -992,13 +1500,23 @@ audio.addEventListener("playing", () => {
     delete player.dataset.firstPlayback;
   }
   setState("playing");
+  if (player.dataset.videoOpen === "true" && video?.paused) {
+    syncVideoToAudio();
+    video.play().catch(() => {});
+  }
 });
 audio.addEventListener("pause", () => {
   if (switchingTrack) return;
   motorRunning = false;
+  motorTransition = null;
+  visualSpeed = 0;
   pendingMotorPause = false;
   delete player.dataset.firstPlayback;
   if (!audio.ended) setState("paused");
+  if (player.dataset.videoOpen === "true" && video) {
+    syncVideoToAudio();
+    if (!video.paused) video.pause();
+  }
 });
 audio.addEventListener("ended", () => {
   if (currentTrackIndex < tracks.length - 1) {

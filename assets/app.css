@@ -354,6 +354,137 @@ button, a { font: inherit; }
   will-change: transform;
 }
 
+.video-drawer {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #e8d9bd;
+  background: #090806;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-104%) scale(0.94);
+  transition: opacity 240ms ease, transform 620ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  touch-action: pan-y;
+}
+.video-drawer[aria-hidden="true"] { visibility: hidden; }
+[data-video-open="true"] .video-drawer {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) scale(1);
+}
+.video-drawer::before,
+.video-drawer::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+.video-drawer::before {
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+.video-drawer::after {
+  background: radial-gradient(ellipse, transparent 52%, rgba(0, 0, 0, 0.58) 100%);
+}
+.video-vhs-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: #090806;
+  transform: scale(1.08) rotate(-1deg);
+}
+[data-video-open="true"] .video-vhs-shell { animation: vhs-tape-insert 680ms cubic-bezier(0.16, 0.84, 0.24, 1) both; }
+.video-vhs-shell video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  filter: saturate(0.86) contrast(1.08);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.video-vhs-shell[data-video-orientation="portrait"] video {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+.video-vhs-shell[data-video-orientation="landscape"] video {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+.video-vhs-label,
+.video-vhs-status {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  color: rgba(232, 217, 189, 0.82);
+  font-family: var(--utility-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  text-shadow: 0 0 0.8rem #000;
+  pointer-events: none;
+}
+.video-vhs-label { top: max(1.25rem, env(safe-area-inset-top)); left: max(1.25rem, env(safe-area-inset-left)); display: flex; gap: 0.7rem; }
+.video-vhs-label strong { color: #e7a65e; font-weight: 700; }
+.video-vhs-status { right: max(1.25rem, env(safe-area-inset-right)); bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+@keyframes vhs-tape-insert {
+  0% { opacity: 0; transform: scale(0.7) rotate(-4deg) translateX(18%); filter: brightness(2.2) contrast(0.7); }
+  42% { opacity: 1; transform: scale(1.03) rotate(0.5deg) translateX(-1%); filter: brightness(1.15) contrast(1); }
+  100% { opacity: 1; transform: scale(1) rotate(0) translateX(0); filter: none; }
+}
+.video-drawer:fullscreen { position: fixed; }
+.video-peek {
+  position: absolute;
+  z-index: 19;
+  top: 50%;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 7rem;
+  padding: 0;
+  border: 1px solid rgba(232, 217, 189, 0.28);
+  border-left: 0;
+  border-radius: 0 0.8rem 0.8rem 0;
+  color: #e8d9bd;
+  background: rgba(9, 8, 6, 0.78);
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: opacity 220ms ease, transform 380ms var(--ease), background 180ms ease;
+  touch-action: manipulation;
+}
+.video-peek span {
+  writing-mode: vertical-rl;
+  color: #e7a65e;
+  font-family: var(--utility-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.video-peek:hover { background: rgba(45, 34, 22, 0.94); }
+.video-peek:focus-visible { outline: 0.14rem solid var(--ink); outline-offset: 0.12rem; }
+[data-has-video="false"] .video-peek,
+[data-video-open="true"] .video-peek { pointer-events: none; opacity: 0; transform: translate(-100%, -50%); }
+@media (prefers-reduced-motion: reduce) {
+  .video-drawer { transition-duration: 1ms; }
+  .video-peek { transition-duration: 1ms; }
+  [data-video-open="true"] .video-vhs-shell { animation: none; }
+}
+
 .release-meta {
   position: absolute;
   z-index: 3;
