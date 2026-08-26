@@ -149,6 +149,8 @@ Options:
   --title <title>
   --artist <artist>
   --audio <path>
+  --lyrics <text>          Single-track lyrics
+  --about <text>           Single-track About text
   --track-count <number>    Interactive multi-track release
   --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
   --artwork <path>
@@ -237,6 +239,27 @@ try {
         });
       }
     }
+  }
+  if (trackInputs.length === 1) {
+    const lyrics = args.lyrics === true
+      ? ""
+      : args.lyrics !== undefined
+        ? String(args.lyrics).trim()
+        : args["no-prompt"]
+          ? ""
+        : (await rl.question("Lyrics (optional; use --lyrics for multiline): ")).trim();
+    const about = args.about === true
+      ? ""
+      : args.about !== undefined
+        ? String(args.about).trim()
+        : args["no-prompt"]
+          ? ""
+        : (await rl.question("About (optional; use --about for multiline): ")).trim();
+    trackInputs[0] = {
+      ...trackInputs[0],
+      ...(lyrics ? { lyrics } : {}),
+      ...(about ? { about } : {}),
+    };
   }
   const artworkInput = await ask("Artwork file", args.artwork);
   const defaultSlug = slugify(title);
@@ -351,7 +374,11 @@ try {
     ...(credits ? { credits } : {}),
     ...(releaseDate ? { releaseDate } : {}),
     ...(trackInputs.length === 1
-      ? { audio: uploadedAudios[0].url }
+      ? {
+          audio: uploadedAudios[0].url,
+          ...(trackInputs[0].lyrics ? { lyrics: trackInputs[0].lyrics } : {}),
+          ...(trackInputs[0].about ? { about: trackInputs[0].about } : {}),
+        }
       : {
           tracks: trackInputs.map((track, index) => ({
             title: track.title,
