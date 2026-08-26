@@ -56,12 +56,14 @@ export function trimWavBuffer(buffer) {
     return false;
   };
 
+  let firstAudible = 0;
+  while (firstAudible < frameCount && !frameIsAudible(firstAudible)) firstAudible += 1;
+  if (firstAudible === frameCount) return { buffer, changed: false, reason: "entire file is silent" };
   let lastAudible = frameCount - 1;
-  while (lastAudible >= 0 && !frameIsAudible(lastAudible)) lastAudible -= 1;
-  if (lastAudible < 0) return { buffer, changed: false, reason: "entire file is silent" };
+  while (lastAudible > firstAudible && !frameIsAudible(lastAudible)) lastAudible -= 1;
 
   const paddingFrames = Math.round(sampleRate * EDGE_PADDING_SECONDS);
-  const startFrame = 0;
+  const startFrame = Math.max(0, firstAudible - paddingFrames);
   const endFrame = Math.min(frameCount, lastAudible + 1 + paddingFrames);
   if (startFrame === 0 && endFrame === frameCount) {
     return { buffer, changed: false, trimmedStartSeconds: 0, trimmedEndSeconds: 0 };
@@ -82,7 +84,7 @@ export function trimWavBuffer(buffer) {
   return {
     buffer: output,
     changed: true,
-    trimmedStartSeconds: 0,
+    trimmedStartSeconds: startFrame / sampleRate,
     trimmedEndSeconds: (frameCount - endFrame) / sampleRate,
   };
 }

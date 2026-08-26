@@ -19,9 +19,7 @@ function parseArgs(argv) {
     if (!token.startsWith("--")) throw new Error(`Unexpected argument: ${token}`);
     const name = token.slice(2);
     const next = argv[index + 1];
-    const value = next && !next.startsWith("--") ? argv[++index] : true;
-    if (name === "video") args.video = [...(args.video || []), value];
-    else args[name] = value;
+    args[name] = next && !next.startsWith("--") ? argv[++index] : true;
   }
   return args;
 }
@@ -154,9 +152,8 @@ Options:
   --lyrics <text>          Single-track lyrics
   --about <text>           Single-track About text
   --track-count <number>    Interactive multi-track release
-  --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about/video)
+  --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
   --artwork <path>
-  --video <path>           Optional video for a single-track release
   --edition <text>
   --credits <text>         Release credits; Markdown links are supported
   --release-date <YYYY-MM-DD> Optional date used to sort the discography
@@ -184,7 +181,6 @@ async function readTrackManifest(filePath) {
       ...(track.artist ? { artist: String(track.artist).trim() } : {}),
       ...(track.lyrics ? { lyrics: String(track.lyrics) } : {}),
       ...(track.about ? { about: String(track.about) } : {}),
-      ...(track.video ? { videoPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.video)) } : {}),
     };
   });
 }
@@ -266,8 +262,6 @@ try {
     };
   }
   const artworkInput = await ask("Artwork file", args.artwork);
-  const videoInputs = (args.video || []).filter((value) => value !== true).map((value) => String(value).trim());
-  const videoInput = videoInputs[0] || "";
   const defaultSlug = slugify(title);
   const slugAnswer = args.slug
     ? String(args.slug)
@@ -298,12 +292,9 @@ try {
   }
 
   const artworkPath = path.resolve(normalizeFileInput(artworkInput));
-  const videoPath = videoInput ? path.resolve(normalizeFileInput(videoInput)) : null;
-  if (trackInputs.length > 1 && videoInputs.length) throw new Error("Use a video field in each track object for multi-track releases");
   await Promise.all([
     ...trackInputs.map((track) => access(track.audioPath)),
     access(artworkPath),
-    ...(videoPath ? [access(videoPath)] : []),
     access(path.join(root, "release-target.json")),
   ]);
 
@@ -326,15 +317,6 @@ try {
     ...trackInputs.flatMap((track) => ["--audio", track.audioPath]),
     "--artwork", artworkPath,
   ];
-  const videoUploadIndices = new Map();
-  let videoUploadIndex = 0;
-  for (const [index, track] of trackInputs.entries()) {
-    if (!track.videoPath) continue;
-    videoUploadIndices.set(index, videoUploadIndex);
-    uploadArgs.push("--video", track.videoPath);
-    videoUploadIndex += 1;
-  }
-  if (videoPath && trackInputs.length === 1 && !trackInputs[0].videoPath) uploadArgs.push("--video", videoPath);
   const preview = parseUploadResult(runNode("upload-release-assets.mjs", [...uploadArgs, "--dry-run"]));
   const previewAudios = preview.audios || [preview.audio];
   const duplicates = await findDuplicateRelease({
@@ -396,7 +378,6 @@ try {
           audio: uploadedAudios[0].url,
           ...(trackInputs[0].lyrics ? { lyrics: trackInputs[0].lyrics } : {}),
           ...(trackInputs[0].about ? { about: trackInputs[0].about } : {}),
-          ...(uploaded.video ? { video: uploaded.video.url } : {}),
         }
       : {
           tracks: trackInputs.map((track, index) => ({
@@ -404,8 +385,7 @@ try {
             ...(track.artist ? { artist: track.artist } : {}),
             audio: uploadedAudios[index].url,
             ...(track.lyrics ? { lyrics: track.lyrics } : {}),
-          ...(track.about ? { about: track.about } : {}),
-          ...(uploaded.videos?.[videoUploadIndices.get(index)] ? { video: uploaded.videos[videoUploadIndices.get(index)].url } : uploaded.video && trackInputs.length === 1 ? { video: uploaded.video.url } : {}),
+            ...(track.about ? { about: track.about } : {}),
           })),
         }),
   };

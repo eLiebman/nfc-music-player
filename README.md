@@ -40,10 +40,9 @@ node scripts/new-release.mjs
 The script previews the immutable S3 keys, asks before uploading, writes the
 release config, generates the page, validates the uploaded assets and metadata,
 then prints the local visual-QA link. It does not use AI or deploy the site.
-WAV masters are trimmed conservatively at the end before hashing and upload:
+WAV masters are trimmed conservatively at both edges before hashing and upload:
 samples below -60 dB are treated as silence and 20 ms of safety padding is
-retained. Leading silence is preserved for audio/video synchronization. Non-WAV
-files are uploaded unchanged when `ffmpeg` is unavailable.
+retained. Non-WAV files are uploaded unchanged when `ffmpeg` is unavailable.
 Choose the number of tracks when prompted. A single track keeps the compact
 top-level `audio` config; two or more tracks produce a `tracks` array and prompt
 for each title, audio file, optional artist override, lyrics, and About text.
@@ -122,7 +121,6 @@ optional and falls back to the release artist.
     {
       "title": "First song",
       "audio": "https://media.example.com/first-song.wav",
-      "video": "https://media.example.com/first-song.mp4",
       "lyrics": "First line\nSecond line",
       "about": "Optional notes, credits, or story behind the song."
     },
@@ -142,11 +140,5 @@ the swipe-up drawer. Release-level Credits and track-level Lyrics/About tabs are
 hidden automatically when empty. Markdown links in About and Credits open in a
 new tab so playback continues uninterrupted; line breaks and other text are
 preserved.
-
-If a track has a `video` URL, swipe right from the left edge of the player to
-open that track’s full-screen VHS-style video drawer. Tap the video to pause or
-resume, and swipe left across the video to close it. MP4, WebM, and MOV files
-are supported where the browser supports them. Device orientation remains under
-the user’s control while the video is open.
 
 The player has no accounts, analytics, database, secrets, upload UI, scrubber, volume UI, or playlist.

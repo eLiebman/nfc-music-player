@@ -51,7 +51,7 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=52">
+    <link rel="stylesheet" href="../assets/app.css?v=47">
   </head>
   <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
     <main class="player" data-player data-state="loading">
@@ -111,14 +111,6 @@ function pageHtml(slug, config) {
           <div class="drawer-panel credits" role="tabpanel" id="credits-panel" data-drawer-panel="credits" data-credits></div>
         </div>
       </section>
-      <section class="video-drawer" data-video-drawer aria-hidden="true" aria-label="Release video">
-        <div class="video-vhs-shell" data-video-shell>
-          <video data-video playsinline preload="metadata"></video>
-        </div>
-      </section>
-      <button class="video-peek" type="button" data-video-peek aria-label="Open track video" aria-controls="video-drawer" aria-expanded="false">
-        <span>VIDEO</span>
-      </button>
       <section class="discography-overlay" id="discography" data-discography aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="discography-title">
         <header>
           <div>
@@ -134,7 +126,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=116"></script>
+    <script type="module" src="../assets/player.js?v=61"></script>
   </body>
 </html>
 `;
