@@ -159,7 +159,30 @@ button, a { font: inherit; }
   backdrop-filter: blur(14px);
   cursor: pointer;
   touch-action: manipulation;
+  overflow: hidden;
   transition: background 180ms ease, opacity 360ms var(--ease), scale 180ms ease, transform 360ms var(--ease);
+}
+.discography-toggle::after {
+  position: absolute;
+  inset: -60% 30%;
+  content: "";
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.78) 50%, transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-180%) rotate(12deg);
+}
+.player[data-state="ended"][data-discography-attention="true"] .discography-toggle::after {
+  animation: discography-toggle-shimmer 2.8s ease-in-out infinite;
+}
+@keyframes discography-toggle-shimmer {
+  0%, 35% { opacity: 0; transform: translateX(-180%) rotate(12deg); }
+  50% { opacity: 0.9; }
+  65%, 100% { opacity: 0; transform: translateX(180%) rotate(12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .player[data-state="ended"][data-discography-attention="true"] .discography-toggle::after {
+    animation: none;
+  }
 }
 .discography-toggle:hover { background: rgba(255, 255, 255, 0.13); }
 .discography-toggle:active { scale: 0.94; }
@@ -564,6 +587,7 @@ button, a { font: inherit; }
   transition: rotate 240ms var(--ease);
 }
 [data-multitrack="false"] .drawer-peek { --drawer-peek-bottom-offset: 1.1rem; }
+[data-has-drawer-content="false"] .drawer-peek { display: none; }
 [data-drawer-open="true"] .drawer-peek { transform: translateY(0); }
 [data-drawer-open="true"] .drawer-peek svg { rotate: 180deg; }
 .drawer-peek:focus-visible { outline: 0.12rem solid var(--ink); outline-offset: 0.15rem; }
@@ -628,7 +652,7 @@ button, a { font: inherit; }
   border-bottom: 0;
   border-radius: 1.5rem 1.5rem 0 0;
   color: var(--ink);
-  background: rgba(2, 3, 5, 0.9);
+  background: rgba(2, 3, 5, 0.78);
   box-shadow: 0 -1.5rem 5rem rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(24px) saturate(1.15);
   translate: -50% 0;
@@ -711,6 +735,7 @@ button, a { font: inherit; }
   white-space: pre-line;
 }
 .about { white-space: pre-wrap; }
+.about a { color: inherit; text-underline-offset: 0.18em; }
 
 .edition, .status {
   margin: 0.2rem 0;
@@ -741,6 +766,10 @@ button, a { font: inherit; }
   transition-duration: 900ms;
   transition-delay: 1500ms;
 }
+[data-first-playback="true"][data-state="playing"] .discography-toggle {
+  transition-duration: 900ms;
+  transition-delay: 1500ms;
+}
 
 [data-state="playing"] .release-meta { transform: translateY(-0.45rem); }
 [data-state="playing"] .release-footer { transform: translateY(0.45rem); }
@@ -759,6 +788,12 @@ button, a { font: inherit; }
 [data-state="paused"] .release-footer,
 [data-state="ended"] .release-meta,
 [data-state="ended"] .release-footer {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0ms;
+}
+[data-state="paused"] .discography-toggle,
+[data-state="ended"] .discography-toggle {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0ms;

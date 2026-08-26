@@ -36,6 +36,7 @@ function pageHtml(slug, config) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#12131a">
+    <script src="../assets/fullstory.js"></script>
     <title>${title}</title>
     <meta name="description" content="${description}">
     <meta property="og:type" content="${ogType}">
@@ -50,7 +51,7 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=41">
+    <link rel="stylesheet" href="../assets/app.css?v=46">
   </head>
   <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
     <main class="player" data-player data-state="loading">
@@ -123,7 +124,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=59"></script>
+    <script type="module" src="../assets/player.js?v=61"></script>
   </body>
 </html>
 `;

@@ -124,6 +124,39 @@ function availableDrawerTabs() {
   return drawerTabs.filter((tab) => !tab.hidden).map((tab) => tab.dataset.drawerTab);
 }
 
+function renderAboutMarkdown(markdown) {
+  about.replaceChildren();
+  const linkPattern = /\[([^\]\n]+)\]\(([^\s)]+)\)/g;
+  let cursor = 0;
+  let match;
+
+  while ((match = linkPattern.exec(markdown))) {
+    about.append(document.createTextNode(markdown.slice(cursor, match.index)));
+
+    let url;
+    try {
+      url = new URL(match[2], document.baseURI);
+    } catch {
+      url = null;
+    }
+    if (!url || !["http:", "https:", "mailto:"].includes(url.protocol)) {
+      about.append(document.createTextNode(match[0]));
+    } else {
+      const link = document.createElement("a");
+      link.href = url.href;
+      link.textContent = match[1];
+      if (["http:", "https:"].includes(url.protocol)) {
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+      }
+      about.append(link);
+    }
+    cursor = match.index + match[0].length;
+  }
+
+  about.append(document.createTextNode(markdown.slice(cursor)));
+}
+
 function setActiveDrawerTab(name) {
   const available = availableDrawerTabs();
   if (!available.includes(name)) name = available[0] || "lyrics";
@@ -152,8 +185,12 @@ function updateTrackUi() {
   drawerArtist.textContent = track.artist;
   const lyricsText = track.lyrics?.trim() || "";
   const aboutText = track.about?.trim() || "";
+  const hasDrawerContent = Boolean(lyricsText || aboutText);
+  player.dataset.hasDrawerContent = String(hasDrawerContent);
+  drawerToggle.disabled = !hasDrawerContent;
+  if (!hasDrawerContent && player.dataset.drawerOpen === "true") setDrawerOpen(false);
   lyrics.textContent = lyricsText;
-  about.textContent = aboutText;
+  renderAboutMarkdown(aboutText);
   drawerTabs.find((tab) => tab.dataset.drawerTab === "lyrics").hidden = !lyricsText;
   drawerTabs.find((tab) => tab.dataset.drawerTab === "about").hidden = !aboutText;
   setActiveDrawerTab(lyricsText ? "lyrics" : "about");
@@ -170,6 +207,7 @@ function updateTrackUi() {
 }
 
 function setDrawerOpen(open) {
+  if (open && player.dataset.hasDrawerContent !== "true") return;
   player.dataset.drawerOpen = String(open);
   lyricsDrawer.setAttribute("aria-hidden", String(!open));
   drawerToggle.setAttribute("aria-expanded", String(open));
@@ -179,6 +217,7 @@ function setDrawerOpen(open) {
 }
 
 function setDiscographyOpen(open) {
+  if (open) delete player.dataset.discographyAttention;
   player.dataset.discographyOpen = String(open);
   discographyOverlay.setAttribute("aria-hidden", String(!open));
   discographyToggle.setAttribute("aria-expanded", String(open));
@@ -322,6 +361,11 @@ function getConfigUrl() {
 function setState(next, message = "") {
   state = next;
   player.dataset.state = next;
+  if (next === "ended" && currentTrackIndex === tracks.length - 1) {
+    player.dataset.discographyAttention = "true";
+  } else {
+    delete player.dataset.discographyAttention;
+  }
   if (next !== "playing" || player.dataset.controlsVisible !== "true") setControlsVisible(false);
   button.disabled = next === "loading" || next === "ending";
 

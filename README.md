@@ -136,5 +136,7 @@ optional and falls back to the release artist.
 The player displays the current song in the footer, provides previous/next
 controls, advances automatically, and shows available lyrics or song notes in
 the swipe-up drawer. Missing Lyrics or About tabs are hidden automatically.
+About text supports Markdown-style links such as `[Bandcamp](https://bandcamp.com/artist)`;
+line breaks and other text are preserved.
 
 The player has no accounts, analytics, database, secrets, upload UI, scrubber, volume UI, or playlist.
