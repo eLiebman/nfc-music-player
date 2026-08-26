@@ -46,5 +46,13 @@
     "releaseDate": "2022-06-26",
     "artwork": "https://media.elliotwavs.com/releases/low-energy/artwork.jpg?v=2",
     "url": "/low-energy/"
+  },
+  {
+    "slug": "buy-and-hold",
+    "title": "Buy and Hold",
+    "artist": "Elliot.wavs feat. STONK!",
+    "releaseDate": "2022-02-25",
+    "artwork": "https://media.elliotwavs.com/releases/buy-and-hold/artwork-fff5ff231e56.jpg",
+    "url": "/buy-and-hold/"
   }
 ]

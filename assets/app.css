@@ -195,7 +195,9 @@ button, a { font: inherit; }
   stroke-linejoin: round;
   stroke-width: 1.65;
 }
-[data-state="playing"] .discography-toggle {
+[data-state="playing"] .discography-toggle,
+[data-state="stopping"] .discography-toggle,
+[data-state="ending"] .discography-toggle {
   opacity: 0;
   transform: translateY(-0.4rem);
   transition-delay: 0ms, 160ms, 0ms, 160ms;
