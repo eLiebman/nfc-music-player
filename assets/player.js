@@ -289,6 +289,7 @@ function openVideoViewer(source, title) {
   videoPlayer.src = new URL(source, document.baseURI).href;
   videoPlayer.setAttribute("aria-label", title || "Video");
   videoViewer.setAttribute("aria-hidden", "false");
+  requestVideoFullscreen();
   history.pushState({ ...history.state, videoViewer: true }, "", `${location.pathname}${location.search}#video`);
   videoPlayer.play().catch(() => {});
 }
@@ -752,6 +753,13 @@ function requestFullscreenOnce() {
     player.requestFullscreen({ navigationUI: "hide" })
       .then(lockPortraitOrientation)
       .catch(() => {});
+  }
+}
+
+function requestVideoFullscreen() {
+  screen.orientation?.unlock?.();
+  if (document.fullscreenEnabled && videoViewer.requestFullscreen) {
+    videoViewer.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
   }
 }
 

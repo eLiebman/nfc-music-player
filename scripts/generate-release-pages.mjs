@@ -136,7 +136,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=83"></script>
+    <script type="module" src="../assets/player.js?v=84"></script>
   </body>
 </html>
 `;
