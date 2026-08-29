@@ -38,7 +38,7 @@ function pageHtml(slug, config) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#12131a">
-    <script src="../assets/fullstory.js"></script>
+    <script src="https://elliotwavs.com/assets/fullstory.js"></script>
     <title>${title}</title>
     <meta name="description" content="${description}">
     <meta property="og:type" content="${ogType}">
