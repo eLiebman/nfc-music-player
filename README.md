@@ -28,6 +28,9 @@ AWS, duplicate, upload, or validation failures leave the complete draft intact
 so it can be corrected and retried. It supports single- and multi-track
 releases, track ordering, lyrics, About text, artist overrides, and force mode.
 It does not use AI or deploy the site.
+Video files selected in the editor are transcoded locally with `ffmpeg` into
+mobile and desktop MP4 variants before they are uploaded to S3; no hosted
+transcoding server is involved.
 Release dates are optional (`YYYY-MM-DD`). Dated releases appear newest-first in
 the discography; releases without a date remain valid and sort after them.
 

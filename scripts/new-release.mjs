@@ -150,10 +150,12 @@ Options:
   --artist <artist>
   --audio <path>
   --video <path>           Single-track video
+  --video-mobile <path>    Single-track mobile video variant
+  --video-desktop <path>   Single-track desktop video variant
   --lyrics <text>          Single-track lyrics
   --about <text>           Single-track About text
   --track-count <number>    Interactive multi-track release
-  --tracks <json-path>      JSON array of track objects (title, audio, optional video/artist/lyrics/about)
+  --tracks <json-path>      JSON array of track objects (title, audio, optional video/videoMobile/videoDesktop/artist/lyrics/about)
   --artwork <path>
   --edition <text>
   --credits <text>         Release credits; Markdown links are supported
@@ -176,10 +178,15 @@ async function readTrackManifest(filePath) {
     if (!track?.title || !track?.audio) {
       throw new Error(`Track ${index + 1} in ${resolvedPath} requires title and audio`);
     }
+    const videoInput = track.video ?? track.videoPath;
+    const videoMobileInput = track.videoMobile ?? track.videoMobilePath;
+    const videoDesktopInput = track.videoDesktop ?? track.videoDesktopPath;
     return {
       title: String(track.title).trim(),
       audioPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.audio)),
-      ...(track.video ? { videoPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.video)) } : {}),
+      ...(videoInput ? { videoPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(videoInput)) } : {}),
+      ...(videoMobileInput ? { videoMobilePath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(videoMobileInput)) } : {}),
+      ...(videoDesktopInput ? { videoDesktopPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(videoDesktopInput)) } : {}),
       ...(track.artist ? { artist: String(track.artist).trim() } : {}),
       ...(track.lyrics ? { lyrics: String(track.lyrics) } : {}),
       ...(track.about ? { about: String(track.about) } : {}),
@@ -248,6 +255,12 @@ try {
     if (args.video && args.video !== true) {
       trackInputs[0] = { ...trackInputs[0], videoPath: path.resolve(normalizeFileInput(args.video)) };
     }
+    if (args["video-mobile"] && args["video-mobile"] !== true) {
+      trackInputs[0] = { ...trackInputs[0], videoMobilePath: path.resolve(normalizeFileInput(args["video-mobile"])) };
+    }
+    if (args["video-desktop"] && args["video-desktop"] !== true) {
+      trackInputs[0] = { ...trackInputs[0], videoDesktopPath: path.resolve(normalizeFileInput(args["video-desktop"])) };
+    }
     const lyrics = args.lyrics === true
       ? ""
       : args.lyrics !== undefined
@@ -302,6 +315,8 @@ try {
   await Promise.all([
     ...trackInputs.map((track) => access(track.audioPath)),
     ...trackInputs.filter((track) => track.videoPath).map((track) => access(track.videoPath)),
+    ...trackInputs.filter((track) => track.videoMobilePath).map((track) => access(track.videoMobilePath)),
+    ...trackInputs.filter((track) => track.videoDesktopPath).map((track) => access(track.videoDesktopPath)),
     access(artworkPath),
     access(path.join(root, "release-target.json")),
   ]);
@@ -324,11 +339,15 @@ try {
     "--slug", slug,
     ...trackInputs.flatMap((track) => ["--audio", track.audioPath]),
     ...trackInputs.flatMap((track) => track.videoPath ? ["--video", track.videoPath] : []),
+    ...trackInputs.flatMap((track) => track.videoMobilePath ? ["--video-mobile", track.videoMobilePath] : []),
+    ...trackInputs.flatMap((track) => track.videoDesktopPath ? ["--video-desktop", track.videoDesktopPath] : []),
     "--artwork", artworkPath,
   ];
   const preview = parseUploadResult(runNode("upload-release-assets.mjs", [...uploadArgs, "--dry-run"]));
   const previewAudios = preview.audios || [preview.audio];
   const previewVideos = preview.videos || (preview.video ? [preview.video] : []);
+  const previewMobileVideos = preview.videoMobiles || (preview.videoMobile ? [preview.videoMobile] : []);
+  const previewDesktopVideos = preview.videoDesktops || (preview.videoDesktop ? [preview.videoDesktop] : []);
   const duplicates = await findDuplicateRelease({
     slug,
     title,
@@ -351,6 +370,8 @@ try {
     console.log(`  Track ${index + 1}: ${audio.key}`);
   }
   for (const video of previewVideos) console.log(`  Video: ${video.key}`);
+  for (const video of previewMobileVideos) console.log(`  Mobile video: ${video.key}`);
+  for (const video of previewDesktopVideos) console.log(`  Desktop video: ${video.key}`);
   console.log(`  ${preview.artwork.key}`);
 
   if (!args.yes) {
@@ -373,14 +394,25 @@ try {
   console.log("Checking uploaded assets through CloudFront...");
   const uploadedAudios = uploaded.audios || [uploaded.audio];
   const uploadedVideos = uploaded.videos || (uploaded.video ? [uploaded.video] : []);
+  const uploadedMobileVideos = uploaded.videoMobiles || (uploaded.videoMobile ? [uploaded.videoMobile] : []);
+  const uploadedDesktopVideos = uploaded.videoDesktops || (uploaded.videoDesktop ? [uploaded.videoDesktop] : []);
   await Promise.all([
     ...uploadedAudios.map((audio) => validateRemoteAsset(audio.url, "audio/")),
     ...uploadedVideos.map((video) => validateRemoteAsset(video.url, "video/")),
+    ...uploadedMobileVideos.map((video) => validateRemoteAsset(video.url, "video/")),
+    ...uploadedDesktopVideos.map((video) => validateRemoteAsset(video.url, "video/")),
     validateRemoteAsset(uploaded.artwork.url, "image/"),
   ]);
 
   let nextVideoIndex = 0;
-  const uploadedVideoUrl = (track) => track.videoPath ? uploadedVideos[nextVideoIndex++].url : null;
+  let nextMobileVideoIndex = 0;
+  let nextDesktopVideoIndex = 0;
+  const uploadedVideoUrl = (track) => {
+    const mobile = track.videoMobilePath ? uploadedMobileVideos[nextMobileVideoIndex++].url : null;
+    const desktop = track.videoDesktopPath ? uploadedDesktopVideos[nextDesktopVideoIndex++].url : null;
+    if (mobile || desktop) return { ...(mobile ? { mobile } : {}), ...(desktop ? { desktop } : {}) };
+    return track.videoPath ? uploadedVideos[nextVideoIndex++].url : null;
+  };
   const config = {
     title,
     artist,
@@ -391,7 +423,9 @@ try {
     ...(trackInputs.length === 1
       ? {
           audio: uploadedAudios[0].url,
-          ...(trackInputs[0].videoPath ? { video: uploadedVideoUrl(trackInputs[0]) } : {}),
+          ...((trackInputs[0].videoPath || trackInputs[0].videoMobilePath || trackInputs[0].videoDesktopPath)
+            ? { video: uploadedVideoUrl(trackInputs[0]) }
+            : {}),
           ...(trackInputs[0].lyrics ? { lyrics: trackInputs[0].lyrics } : {}),
           ...(trackInputs[0].about ? { about: trackInputs[0].about } : {}),
         }
@@ -400,7 +434,9 @@ try {
             title: track.title,
             ...(track.artist ? { artist: track.artist } : {}),
             audio: uploadedAudios[index].url,
-            ...(track.videoPath ? { video: uploadedVideoUrl(track) } : {}),
+            ...((track.videoPath || track.videoMobilePath || track.videoDesktopPath)
+              ? { video: uploadedVideoUrl(track) }
+              : {}),
             ...(track.lyrics ? { lyrics: track.lyrics } : {}),
             ...(track.about ? { about: track.about } : {}),
           })),
