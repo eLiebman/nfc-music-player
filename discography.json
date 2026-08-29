@@ -9,7 +9,10 @@
     "videos": [
       {
         "title": "Just Friends",
-        "video": "https://media.elliotwavs.com/releases/just-friends/video-bc643e183ea1.mp4"
+        "video": {
+          "mobile": "https://media.elliotwavs.com/releases/just-friends/video-mobile-2a6ba20cdc7a.mp4",
+          "desktop": "https://media.elliotwavs.com/releases/just-friends/video-desktop-fc79367c178a.mp4"
+        }
       }
     ],
     "videoUrl": "/just-friends/?video=1"
@@ -75,7 +78,10 @@
     "videos": [
       {
         "title": "Buy and Hold",
-        "video": "https://media.elliotwavs.com/releases/buy-and-hold/video-40cf54f960ff.mp4"
+        "video": {
+          "mobile": "https://media.elliotwavs.com/releases/buy-and-hold/video-mobile-2f6516c0ccec.mp4",
+          "desktop": "https://media.elliotwavs.com/releases/buy-and-hold/video-desktop-38907b4b3e46.mp4"
+        }
       }
     ],
     "videoUrl": "/buy-and-hold/?video=1"

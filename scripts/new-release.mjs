@@ -149,10 +149,11 @@ Options:
   --title <title>
   --artist <artist>
   --audio <path>
+  --video <path>           Single-track video
   --lyrics <text>          Single-track lyrics
   --about <text>           Single-track About text
   --track-count <number>    Interactive multi-track release
-  --tracks <json-path>      JSON array of track objects (title, audio, optional artist/lyrics/about)
+  --tracks <json-path>      JSON array of track objects (title, audio, optional video/artist/lyrics/about)
   --artwork <path>
   --edition <text>
   --credits <text>         Release credits; Markdown links are supported
@@ -178,6 +179,7 @@ async function readTrackManifest(filePath) {
     return {
       title: String(track.title).trim(),
       audioPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.audio)),
+      ...(track.video ? { videoPath: path.resolve(path.dirname(resolvedPath), normalizeFileInput(track.video)) } : {}),
       ...(track.artist ? { artist: String(track.artist).trim() } : {}),
       ...(track.lyrics ? { lyrics: String(track.lyrics) } : {}),
       ...(track.about ? { about: String(track.about) } : {}),
@@ -227,12 +229,14 @@ try {
         console.log(`\nTrack ${index + 1} of ${trackCount}`);
         const trackTitle = await ask("  Title");
         const audioInput = await ask("  Audio file");
+        const videoInput = (await rl.question("  Video file (optional): ")).trim();
         const trackArtist = (await rl.question("  Artist override (optional): ")).trim();
         const lyrics = (await rl.question("  Lyrics (optional; use --tracks for multiline): ")).trim();
         const about = (await rl.question("  About (optional; use --tracks for multiline): ")).trim();
         trackInputs.push({
           title: trackTitle,
           audioPath: path.resolve(normalizeFileInput(audioInput)),
+          ...(videoInput ? { videoPath: path.resolve(normalizeFileInput(videoInput)) } : {}),
           ...(trackArtist ? { artist: trackArtist } : {}),
           ...(lyrics ? { lyrics } : {}),
           ...(about ? { about } : {}),
@@ -241,6 +245,9 @@ try {
     }
   }
   if (trackInputs.length === 1) {
+    if (args.video && args.video !== true) {
+      trackInputs[0] = { ...trackInputs[0], videoPath: path.resolve(normalizeFileInput(args.video)) };
+    }
     const lyrics = args.lyrics === true
       ? ""
       : args.lyrics !== undefined
@@ -294,6 +301,7 @@ try {
   const artworkPath = path.resolve(normalizeFileInput(artworkInput));
   await Promise.all([
     ...trackInputs.map((track) => access(track.audioPath)),
+    ...trackInputs.filter((track) => track.videoPath).map((track) => access(track.videoPath)),
     access(artworkPath),
     access(path.join(root, "release-target.json")),
   ]);
@@ -315,10 +323,12 @@ try {
   const uploadArgs = [
     "--slug", slug,
     ...trackInputs.flatMap((track) => ["--audio", track.audioPath]),
+    ...trackInputs.flatMap((track) => track.videoPath ? ["--video", track.videoPath] : []),
     "--artwork", artworkPath,
   ];
   const preview = parseUploadResult(runNode("upload-release-assets.mjs", [...uploadArgs, "--dry-run"]));
   const previewAudios = preview.audios || [preview.audio];
+  const previewVideos = preview.videos || (preview.video ? [preview.video] : []);
   const duplicates = await findDuplicateRelease({
     slug,
     title,
@@ -340,6 +350,7 @@ try {
   for (const [index, audio] of previewAudios.entries()) {
     console.log(`  Track ${index + 1}: ${audio.key}`);
   }
+  for (const video of previewVideos) console.log(`  Video: ${video.key}`);
   console.log(`  ${preview.artwork.key}`);
 
   if (!args.yes) {
@@ -361,11 +372,15 @@ try {
   }
   console.log("Checking uploaded assets through CloudFront...");
   const uploadedAudios = uploaded.audios || [uploaded.audio];
+  const uploadedVideos = uploaded.videos || (uploaded.video ? [uploaded.video] : []);
   await Promise.all([
     ...uploadedAudios.map((audio) => validateRemoteAsset(audio.url, "audio/")),
+    ...uploadedVideos.map((video) => validateRemoteAsset(video.url, "video/")),
     validateRemoteAsset(uploaded.artwork.url, "image/"),
   ]);
 
+  let nextVideoIndex = 0;
+  const uploadedVideoUrl = (track) => track.videoPath ? uploadedVideos[nextVideoIndex++].url : null;
   const config = {
     title,
     artist,
@@ -376,6 +391,7 @@ try {
     ...(trackInputs.length === 1
       ? {
           audio: uploadedAudios[0].url,
+          ...(trackInputs[0].videoPath ? { video: uploadedVideoUrl(trackInputs[0]) } : {}),
           ...(trackInputs[0].lyrics ? { lyrics: trackInputs[0].lyrics } : {}),
           ...(trackInputs[0].about ? { about: trackInputs[0].about } : {}),
         }
@@ -384,6 +400,7 @@ try {
             title: track.title,
             ...(track.artist ? { artist: track.artist } : {}),
             audio: uploadedAudios[index].url,
+            ...(track.videoPath ? { video: uploadedVideoUrl(track) } : {}),
             ...(track.lyrics ? { lyrics: track.lyrics } : {}),
             ...(track.about ? { about: track.about } : {}),
           })),

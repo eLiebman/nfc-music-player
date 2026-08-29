@@ -1,3 +1,5 @@
+import { selectVideoSource } from "./video-source.js";
+
 function createArtwork(release) {
   const image = document.createElement("img");
   image.src = release.artwork;
@@ -10,7 +12,7 @@ function createArtwork(release) {
 function createVideoThumbnail(source) {
   const video = document.createElement("video");
   video.className = "discography-video-thumbnail";
-  video.src = new URL(source, document.baseURI).href;
+  video.src = new URL(selectVideoSource(source), document.baseURI).href;
   video.muted = true;
   video.playsInline = true;
   video.preload = "metadata";
@@ -41,7 +43,7 @@ export function renderDiscographyLists({ catalog, audioList, videoList, currentP
       const videoLink = document.createElement("a");
       videoLink.className = "discography-release discography-video";
       videoLink.href = video.url || release.videoUrl || `${release.url}?video=1`;
-      videoLink.dataset.videoSrc = video.video;
+      videoLink.dataset.videoSrc = selectVideoSource(video.video);
       videoLink.dataset.videoTitle = video.title;
       const videoName = document.createElement("strong");
       videoName.textContent = video.title;

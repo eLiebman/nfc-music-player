@@ -20,6 +20,7 @@ function pageHtml(slug, config) {
   const artist = escapeHtml(config.artist);
   const description = escapeHtml(`${config.title} by ${config.artist}`);
   const directVideo = config.video || (Array.isArray(config.tracks) ? config.tracks.find((track) => track?.video)?.video : "");
+  const directVideoAttribute = typeof directVideo === "string" ? ` data-video-url="${escapeHtml(directVideo)}"` : "";
   const artworkUrl = isRemoteUrl(config.artwork)
     ? config.artwork
     : new URL(config.artwork, `${siteOrigin}/releases/${slug}/`).href;
@@ -55,7 +56,7 @@ function pageHtml(slug, config) {
     <link rel="stylesheet" href="../assets/app.css?v=69">
   </head>
   <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
-    <main class="player" data-player data-state="loading"${directVideo ? ` data-video-url="${escapeHtml(directVideo)}"` : ""}>
+    <main class="player" data-player data-state="loading"${directVideoAttribute}>
       <div class="backdrop" aria-hidden="true"></div>
       <button class="discography-toggle" type="button" data-discography-toggle aria-label="Open discography" aria-controls="discography" aria-expanded="false">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 8 6h16l3 5v14H5Z"/><path d="M8 10h16M9 8h14M8 14h16M8 17h16M8 20h16"/></svg>
@@ -136,7 +137,7 @@ function pageHtml(slug, config) {
       <audio preload="metadata"></audio>
     </main>
     <noscript>This listening experience requires JavaScript.</noscript>
-    <script type="module" src="../assets/player.js?v=84"></script>
+    <script type="module" src="../assets/player.js?v=85"></script>
   </body>
 </html>
 `;

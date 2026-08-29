@@ -17,8 +17,8 @@ function parseArgs(argv) {
     const name = token.slice(2);
     const next = argv[index + 1];
     const value = next && !next.startsWith("--") ? argv[++index] : true;
-    if (name === "audio") {
-      parsed.audio = [...(parsed.audio || []), value];
+    if (["audio", "video", "video-mobile", "video-desktop"].includes(name)) {
+      parsed[name] = [...(parsed[name] || []), value];
     } else {
       parsed[name] = value;
     }
@@ -31,11 +31,22 @@ const args = parseArgs(process.argv.slice(2));
 const slug = String(args.slug || "");
 const audioPaths = (args.audio || []).map((value) => path.resolve(String(value)));
 const artworkPath = args.artwork ? path.resolve(String(args.artwork)) : null;
+const videoPaths = (args.video || []).map((value) => path.resolve(String(value)));
+const mobileVideoPaths = (args["video-mobile"] || []).map((value) => path.resolve(String(value)));
+const desktopVideoPaths = (args["video-desktop"] || []).map((value) => path.resolve(String(value)));
 const dryRun = args["dry-run"] === true;
 
 if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error("--slug must be lowercase kebab-case");
-if (!audioPaths.length && !artworkPath) throw new Error("Provide at least one --audio or --artwork file");
-await Promise.all([...audioPaths.map((audioPath) => access(audioPath)), ...(artworkPath ? [access(artworkPath)] : [])]);
+if (!audioPaths.length && !artworkPath && !videoPaths.length && !mobileVideoPaths.length && !desktopVideoPaths.length) {
+  throw new Error("Provide at least one --audio, --artwork, --video, --video-mobile, or --video-desktop file");
+}
+await Promise.all([
+  ...audioPaths.map((audioPath) => access(audioPath)),
+  ...(artworkPath ? [access(artworkPath)] : []),
+  ...videoPaths.map((videoPath) => access(videoPath)),
+  ...mobileVideoPaths.map((videoPath) => access(videoPath)),
+  ...desktopVideoPaths.map((videoPath) => access(videoPath)),
+]);
 
 const preparedAudioPaths = await Promise.all(audioPaths.map(async (audioPath, index) => {
   if (path.extname(audioPath).toLowerCase() !== ".wav") {
@@ -70,6 +81,7 @@ function contentType(filePath, kind) {
   const types = {
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp",
     ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4", ".aac": "audio/aac", ".flac": "audio/flac",
+    ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
   };
   if (!types[extension]) throw new Error(`Unsupported ${kind} extension: ${extension || "none"}`);
   return types[extension];
@@ -101,6 +113,9 @@ const [audios, artwork] = await Promise.all([
   Promise.all(preparedAudioPaths.map((audioPath) => asset(audioPath, "audio"))),
   artworkPath ? asset(artworkPath, "artwork") : null,
 ]);
+const videos = await Promise.all(videoPaths.map((videoPath) => asset(videoPath, "video")));
+const mobileVideos = await Promise.all(mobileVideoPaths.map((videoPath) => asset(videoPath, "video-mobile")));
+const desktopVideos = await Promise.all(desktopVideoPaths.map((videoPath) => asset(videoPath, "video-desktop")));
 
 if (!dryRun) {
   console.error("Checking AWS credentials...");
@@ -126,8 +141,12 @@ if (!dryRun) {
   }
   console.error("S3 bucket verified.");
 
-  for (const item of [...audios, ...(artwork ? [artwork] : [])]) {
-    const kind = item === artwork ? "artwork" : "audio";
+  for (const item of [...audios, ...(artwork ? [artwork] : []), ...videos, ...mobileVideos, ...desktopVideos]) {
+    const kind = item === artwork
+      ? "artwork"
+      : [...mobileVideos, ...desktopVideos].includes(item)
+        ? item.key.includes("video-mobile-") ? "video-mobile" : "video-desktop"
+        : videos.includes(item) ? "video" : "audio";
     console.error(`Uploading ${kind}: ${path.basename(item.filePath)}`);
     runAws([
       "s3", "cp", item.filePath, `s3://${target.bucket}/${item.key}`,
@@ -149,6 +168,9 @@ const resultPayload = {
   dryRun,
   ...(audios.length === 1 ? { audio: audios[0] } : audios.length ? { audios } : {}),
   ...(artwork ? { artwork } : {}),
+  ...(videos.length === 1 ? { video: videos[0] } : videos.length ? { videos } : {}),
+  ...(mobileVideos.length === 1 ? { videoMobile: mobileVideos[0] } : mobileVideos.length ? { videoMobiles: mobileVideos } : {}),
+  ...(desktopVideos.length === 1 ? { videoDesktop: desktopVideos[0] } : desktopVideos.length ? { videoDesktops: desktopVideos } : {}),
 };
 const result = `${JSON.stringify(resultPayload, null, 2)}\n`;
 if (args["result-file"] && args["result-file"] !== true) {

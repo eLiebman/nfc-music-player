@@ -65,6 +65,7 @@ node scripts/new-release.mjs \
   {
     "title": "First song",
     "audio": "audio/first-song.wav",
+    "video": "video/first-song.mp4",
     "lyrics": "First line\nSecond line",
     "about": "Optional notes"
   },
@@ -142,3 +143,28 @@ new tab so playback continues uninterrupted; line breaks and other text are
 preserved.
 
 The player has no accounts, analytics, database, secrets, upload UI, scrubber, volume UI, or playlist.
+
+## Video delivery
+
+Video configs may use either the original single URL or responsive variants:
+
+```json
+{
+  "video": {
+    "mobile": "https://media.example.com/releases/example/video-mobile-hash.mp4",
+    "desktop": "https://media.example.com/releases/example/video-desktop-hash.mp4"
+  }
+}
+```
+
+The player uses the mobile file at viewport widths below 768 px and the desktop
+file otherwise. The current encoding targets are H.264/AAC MP4 with fast-start
+metadata, a 540×960 mobile ceiling at CRF 28 (1.8 Mbps cap), and a 1920 px
+desktop ceiling at CRF 23 (5 Mbps cap). Generate both files from a source with:
+
+```sh
+node scripts/transcode-video.mjs \
+  --input /full/path/source.mp4 \
+  --mobile-output /full/path/video-mobile.mp4 \
+  --desktop-output /full/path/video-desktop.mp4
+```

@@ -1,4 +1,5 @@
 import { renderDiscographyLists } from "./discography-list.js";
+import { MOBILE_VIDEO_QUERY, selectVideoSource } from "./video-source.js";
 
 const REQUIRED_FIELDS = ["title", "artist", "artwork"];
 const SECONDS_PER_TURN = 8;
@@ -286,13 +287,31 @@ function closeVideoViewer({ restoreHistory = true } = {}) {
 
 function openVideoViewer(source, title) {
   audio.pause();
-  videoPlayer.src = new URL(source, document.baseURI).href;
+  const selectedSource = selectVideoSource(source);
+  if (!selectedSource) return;
+  videoPlayer.src = new URL(selectedSource, document.baseURI).href;
   videoPlayer.setAttribute("aria-label", title || "Video");
   videoViewer.setAttribute("aria-hidden", "false");
   requestVideoFullscreen();
   history.pushState({ ...history.state, videoViewer: true }, "", `${location.pathname}${location.search}#video`);
   videoPlayer.play().catch(() => {});
 }
+
+const mobileVideoMedia = matchMedia(MOBILE_VIDEO_QUERY);
+mobileVideoMedia.addEventListener?.("change", () => {
+  if (videoViewer.getAttribute("aria-hidden") === "true" || !config) return;
+  const source = currentTrack()?.video || config.video;
+  const selectedSource = selectVideoSource(source);
+  if (!selectedSource || videoPlayer.src === new URL(selectedSource, document.baseURI).href) return;
+  const currentTime = videoPlayer.currentTime;
+  const wasPlaying = !videoPlayer.paused;
+  videoPlayer.src = new URL(selectedSource, document.baseURI).href;
+  videoPlayer.addEventListener("loadedmetadata", () => {
+    videoPlayer.currentTime = Math.min(currentTime, videoPlayer.duration || currentTime);
+    if (wasPlaying) videoPlayer.play().catch(() => {});
+  }, { once: true });
+  videoPlayer.load();
+});
 
 async function prepareDiscographyNavigation(event) {
   const link = event.target.closest(".discography-release");
