@@ -22,6 +22,13 @@ Start the local release builder:
 node scripts/release-ui.mjs
 ```
 
+On macOS, double-click `Release Builder.app` in this project to start the
+builder and open it in your default browser. Clicking the launcher again
+reopens the browser if it is already running. Closing the editor browser lets
+the launcher and local server cleanly shut down after a short grace period.
+The launcher checks for Node.js and `ffmpeg`, and writes startup errors to
+`.release-drafts/release-builder.log`.
+
 Open <http://127.0.0.1:4173/>. The builder autosaves field values in the
 browser and streams selected files into the ignored `.release-drafts/` folder.
 AWS, duplicate, upload, or validation failures leave the complete draft intact

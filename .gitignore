@@ -2,9 +2,14 @@
 **/.DS_Store
 .release-drafts/
 
+
 # Local-only release builder. Never publish its UI or server with GitHub Pages.
 scripts/release-ui.mjs
 scripts/release-ui/
+Release Builder.app/
+scripts/make-release-builder-icon.m
+scripts/make-release-builder-launcher.m
+./ReleaseBuilder.app/*
 
 # Local QA releases and their generated routes must never reach production.
 /test-*/
