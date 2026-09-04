@@ -53,7 +53,7 @@ function pageHtml(slug, config) {
     <meta name="twitter:description" content="${artist}">
     <meta name="twitter:image" content="${escapeHtml(artworkUrl)}">
     <link rel="canonical" href="${pageUrl}">
-    <link rel="stylesheet" href="../assets/app.css?v=69">
+    <link rel="stylesheet" href="../assets/app.css?v=70">
   </head>
   <body data-config="../releases/${slug}/config.json" data-discography="../discography.json">
     <main class="player" data-player data-state="loading"${directVideoAttribute}>
