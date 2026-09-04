@@ -651,9 +651,9 @@ button, a { font: inherit; }
 }
 @keyframes drawer-peek-attention {
   0%, 100% { translate: 0 0; scale: 1; }
-  28% { translate: 0 0.42rem; scale: 1.18; }
-  52% { translate: 0 -0.1rem; scale: 1.06; }
-  76% { translate: 0 0.05rem; scale: 1.02; }
+  28% { translate: 0 -0.42rem; scale: 1.18; }
+  52% { translate: 0 0.1rem; scale: 1.06; }
+  76% { translate: 0 -0.05rem; scale: 1.02; }
 }
 [data-has-drawer-content="true"][data-artwork-ready="true"] .drawer-peek {
   animation: drawer-peek-attention 1.35s var(--ease) 0.35s 1 both;
