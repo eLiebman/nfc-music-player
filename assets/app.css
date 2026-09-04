@@ -651,11 +651,12 @@ button, a { font: inherit; }
 }
 @keyframes drawer-peek-attention {
   0%, 100% { translate: 0 0; scale: 1; }
-  34% { translate: 0 0.2rem; scale: 1.1; }
-  62% { translate: 0 -0.05rem; scale: 1.03; }
+  28% { translate: 0 0.42rem; scale: 1.18; }
+  52% { translate: 0 -0.1rem; scale: 1.06; }
+  76% { translate: 0 0.05rem; scale: 1.02; }
 }
-[data-has-drawer-content="true"] .drawer-peek svg {
-  animation: drawer-peek-attention 1.25s var(--ease) 0.7s 1 both;
+[data-has-drawer-content="true"][data-artwork-ready="true"] .drawer-peek svg {
+  animation: drawer-peek-attention 1.35s var(--ease) 0.35s 1 both;
 }
 [data-multitrack="false"] .drawer-peek { --drawer-peek-bottom-offset: 1.1rem; }
 [data-has-drawer-content="false"] .drawer-peek { display: none; }
