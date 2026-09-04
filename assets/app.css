@@ -630,11 +630,11 @@ button, a { font: inherit; }
   left: 0;
   display: grid;
   place-items: center;
-  width: 8rem;
-  height: 0.82rem;
+  width: 9rem;
+  height: 1rem;
   margin-inline: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.45rem 0.45rem 0.14rem 0.14rem;
+  border-radius: 0.52rem 0.52rem 0.16rem 0.16rem;
   color: rgba(255, 255, 255, 0.52);
   background: rgba(154, 160, 169, 0.13);
   box-shadow: 0 -0.15rem 0.6rem rgba(0, 0, 0, 0.1);
@@ -643,10 +643,10 @@ button, a { font: inherit; }
   transition: transform 380ms var(--ease), color 180ms ease, background 180ms ease;
 }
 .drawer-peek svg {
-  width: 1.08rem;
+  width: 1.24rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 2;
   transition: rotate 240ms var(--ease);
 }
 @keyframes drawer-peek-attention {
@@ -655,7 +655,7 @@ button, a { font: inherit; }
   52% { translate: 0 -0.1rem; scale: 1.06; }
   76% { translate: 0 0.05rem; scale: 1.02; }
 }
-[data-has-drawer-content="true"][data-artwork-ready="true"] .drawer-peek svg {
+[data-has-drawer-content="true"][data-artwork-ready="true"] .drawer-peek {
   animation: drawer-peek-attention 1.35s var(--ease) 0.35s 1 both;
 }
 [data-multitrack="false"] .drawer-peek { --drawer-peek-bottom-offset: 1.1rem; }
